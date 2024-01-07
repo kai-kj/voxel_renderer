@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(voxel_world)
+project(voxel_renderer)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -13,12 +13,12 @@ add_custom_command(
 )
 
 file(GLOB_RECURSE C_FILES src/*.c)
-add_executable(voxel_world ${CPP_FILES} ${C_FILES} renderer.spv)
+add_executable(voxel_renderer ${CPP_FILES} ${C_FILES} renderer.spv)
 
-target_include_directories(voxel_world PRIVATE src include)
-target_link_libraries(voxel_world PRIVATE vulkan)
+target_include_directories(voxel_renderer PRIVATE src include)
+target_link_libraries(voxel_renderer PRIVATE vulkan)
 target_compile_options(
-    voxel_world
+    voxel_renderer
     PRIVATE
     -g
     -Wall
