@@ -2,21 +2,23 @@
 #include "world/scene.h"
 
 typedef struct {
-    mc_Instance_t* instance;
     mc_Program_t* program;
-    Scene* scene;
-    Camera* camera;
     uvec2 imageSize;
     char* image;
     mc_Buffer_t* imageBuff;
 } Renderer;
 
 Renderer* renderer_create(
-    uvec3 sceneSize,
+    mc_Device_t* dev,
     uvec2 imageSize,
     char* rendererShaderPath
 );
 
 void renderer_destroy(Renderer* renderer);
 
-char* renderer_render(Renderer* renderer, uint32_t iterations);
+char* renderer_render(
+    Renderer* renderer,
+    Scene* scene,
+    Camera* camera,
+    uint32_t iterations
+);
