@@ -1,38 +1,48 @@
+#include <math.h>
+
 #include "voxel.h"
+
+uint8_t f2b(float f) {
+    return fmin(fmax(0.0, f), 1.0) * 255;
+}
+
+float b2f(uint8_t b) {
+    return b / 255.0;
+}
 
 Voxel voxel_pack(
     VoxelType type,
-    uint8_t r,
-    uint8_t g,
-    uint8_t b,
-    uint8_t p0,
-    uint8_t p1,
-    uint8_t p2,
-    uint8_t p3
+    float r,
+    float g,
+    float b,
+    float p0,
+    float p1,
+    float p2,
+    float p3
 ) {
     return (Voxel){
-        .d0 = (type << 24) | (r << 16) | (g << 8) | b,
-        .d1 = (p0 << 24) | (p1 << 16) | (p2 << 8) | p3,
+        .d0 = (type << 24) | (f2b(r) << 16) | (f2b(g) << 8) | f2b(b),
+        .d1 = (f2b(p0) << 24) | (f2b(p1) << 16) | (f2b(p2) << 8) | f2b(p3),
     };
 }
 
 void voxel_unpack(
     Voxel voxel,
     VoxelType* type,
-    uint8_t* r,
-    uint8_t* g,
-    uint8_t* b,
-    uint8_t* p0,
-    uint8_t* p1,
-    uint8_t* p2,
-    uint8_t* p3
+    float* r,
+    float* g,
+    float* b,
+    float* p0,
+    float* p1,
+    float* p2,
+    float* p3
 ) {
     *type = (voxel.d0 >> 24) & 0xFF;
-    *r = (voxel.d0 >> 16) & 0xFF;
-    *g = (voxel.d0 >> 8) & 0xFF;
-    *b = (voxel.d0 >> 0) & 0xFF;
-    *p0 = (voxel.d1 >> 24) & 0xFF;
-    *p1 = (voxel.d1 >> 16) & 0xFF;
-    *p2 = (voxel.d1 >> 8) & 0xFF;
-    *p3 = (voxel.d1 >> 0) & 0xFF;
+    *r = b2f((voxel.d0 >> 16) & 0xFF);
+    *g = b2f((voxel.d0 >> 8) & 0xFF);
+    *b = b2f((voxel.d0 >> 0) & 0xFF);
+    *p0 = b2f((voxel.d1 >> 24) & 0xFF);
+    *p1 = b2f((voxel.d1 >> 16) & 0xFF);
+    *p2 = b2f((voxel.d1 >> 8) & 0xFF);
+    *p3 = b2f((voxel.d1 >> 0) & 0xFF);
 }

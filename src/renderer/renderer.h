@@ -5,6 +5,7 @@ typedef struct {
     mc_Program_t* program;
     uvec2 imageSize;
     char* image;
+    mc_Buffer_t* seedBuff;
     mc_Buffer_t* imageBuff;
 } Renderer;
 

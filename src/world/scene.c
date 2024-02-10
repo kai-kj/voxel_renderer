@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "logger/logger.h"
 #include "scene.h"
 
 static uint32_t voxels_count(Scene* scene) {
@@ -23,6 +24,8 @@ static uint32_t coord_to_index(Scene* scene, uvec3 pos) {
 }
 
 Scene* scene_create(mc_Device_t* device, uvec3 size, vec3 bgColor) {
+    INFO("creating scene");
+
     Scene* scene = malloc(sizeof *scene);
     *scene = (Scene){.data = {.size = size, .bgColor = bgColor}};
 
@@ -39,6 +42,8 @@ Scene* scene_create(mc_Device_t* device, uvec3 size, vec3 bgColor) {
 }
 
 void scene_destroy(Scene* scene) {
+    INFO("destroying scene");
+
     free(scene->voxels);
     mc_buffer_destroy(scene->dataBuff);
     mc_buffer_destroy(scene->voxelBuff);
@@ -46,10 +51,12 @@ void scene_destroy(Scene* scene) {
 }
 
 void scene_update_data(Scene* scene) {
+    INFO("updating scene data");
     mc_buffer_write(scene->dataBuff, 0, sizeof scene->data, &scene->data);
 }
 
 void scene_update_voxels(Scene* scene) {
+    INFO("updating scene voxels");
     mc_buffer_write(scene->voxelBuff, 0, voxels_size(scene), scene->voxels);
 }
 

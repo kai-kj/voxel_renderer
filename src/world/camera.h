@@ -6,6 +6,7 @@
 typedef struct {
     vec3 pos;
     vec3 dir;
+    vec3 sensorSize; // width, height, focal length
 } CameraData;
 
 typedef struct {
@@ -13,7 +14,7 @@ typedef struct {
     mc_Buffer_t* dataBuff;
 } Camera;
 
-Camera* camera_create(mc_Device_t* device);
+Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength);
 
 void camera_destroy(Camera* camera);
 

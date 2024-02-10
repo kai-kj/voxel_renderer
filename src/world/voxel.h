@@ -3,8 +3,8 @@
 #include <stdint.h>
 
 typedef enum {
-    VOXEL_EMPTY,
-    VOXEL_LAMBERT,
+    VOXEL_TYPE_EMPTY,
+    VOXEL_TYPE_LAMBERT,
 } VoxelType;
 
 typedef struct {
@@ -14,27 +14,28 @@ typedef struct {
 
 Voxel voxel_pack(
     VoxelType type,
-    uint8_t r,
-    uint8_t g,
-    uint8_t b,
-    uint8_t p0,
-    uint8_t p1,
-    uint8_t p2,
-    uint8_t p3
+    float r,
+    float g,
+    float b,
+    float p0,
+    float p1,
+    float p2,
+    float p3
 );
 
 void voxel_unpack(
     Voxel voxel,
     VoxelType* type,
-    uint8_t* r,
-    uint8_t* g,
-    uint8_t* b,
-    uint8_t* p0,
-    uint8_t* p1,
-    uint8_t* p2,
-    uint8_t* p3
+    float* r,
+    float* g,
+    float* b,
+    float* p0,
+    float* p1,
+    float* p2,
+    float* p3
 );
 
-#define VOXEL_EMPTY() voxel_pack(VOXEL_EMPTY, 0, 0, 0, 0, 0, 0, 0)
+#define VOXEL_EMPTY() voxel_pack(VOXEL_TYPE_EMPTY, 0, 0, 0, 0, 0, 0, 0)
 
-#define VOXEL_LAMBERT(r, g, b) voxel_pack(VOXEL_LAMBERT, 0, 0, 0, r, g, b, 0)
+#define VOXEL_LAMBERT(r, g, b)                                                 \
+    voxel_pack(VOXEL_TYPE_LAMBERT, r, g, b, 0, 0, 0, 0)
