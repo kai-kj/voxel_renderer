@@ -35,12 +35,14 @@ struct Voxel {
 struct SceneData {
     uvec3 size;
     vec3 bgColor;
+    float bgIntensity;
 };
 
 struct CameraData {
     vec3 pos;
     vec3 dir;
-    vec3 sensorSize; // width, height, focal length
+    vec2 sensorSize;
+    float focalLegnth;
 };
 
 //============================================================================//
@@ -79,8 +81,14 @@ float rand() {
 }
 
 //============================================================================//
-// logic
+// utility
 //============================================================================//
+
+vec2 rotate(vec2 v, float a) {
+    float s = sin(a);
+    float c = cos(a);
+    return vec2(v.x * c - v.y * s, v.x * s + v.y * c);
+}
 
 int color_pack(vec3 color) {
     ivec3 c = clamp(ivec3(color * 255), 0, 255);
@@ -108,11 +116,18 @@ Voxel get_voxel(uvec3 pos) {
     return Voxel(type, vec3(r, g, b) / 255.0, vec4(p0, p1, p2, p3) / 255.0);
 }
 
-// TODO: camera rotation
+//============================================================================//
+// ray tracing
+//============================================================================//
+
 Ray generate_ray() {
-    vec2 sensorPos
-        = (vec2(glPos - glSize / 2) / vec2(glSize)) * camera.sensorSize.xy;
-    vec3 dir = normalize(vec3(sensorPos, camera.sensorSize.z));
+    vec2 pos = (vec2(glPos - glSize / 2) / vec2(glSize)) * camera.sensorSize;
+    pos = rotate(pos, camera.dir.z);
+
+    vec3 dir = normalize(vec3(pos, camera.focalLegnth));
+    dir.xz = rotate(dir.xz, camera.dir.x);
+    dir.yz = rotate(dir.yz, camera.dir.y);
+
     return Ray(camera.pos, dir);
 }
 
@@ -131,35 +146,32 @@ vec3 traverse(Ray ray) {
             if (tMax.x < tMax.z) {
                 pos.x += step.x;
                 tMax.x += tDelta.x;
-                if (pos.x < 0 || pos.x >= scene.size.x) return vec3(0);
+                if (pos.x < 0 || pos.x >= scene.size.x) return scene.bgColor;
             } else {
                 pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return vec3(0);
+                if (pos.z < 0 || pos.z >= scene.size.z) return scene.bgColor;
             }
         } else {
             if (tMax.y < tMax.z) {
                 pos.y += step.y;
                 tMax.y += tDelta.y;
-                if (pos.y < 0 || pos.y >= scene.size.y) return vec3(0);
+                if (pos.y < 0 || pos.y >= scene.size.y) return scene.bgColor;
             } else {
                 pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return vec3(0);
+                if (pos.z < 0 || pos.z >= scene.size.z) return scene.bgColor;
             }
         }
     }
 }
 
-void main() {
-    // vec3 color = vec3(0.5 - generate_ray().dir.x * 0.5, 0, 0);
+//============================================================================//
+// main
+//============================================================================//
 
+void main() {
     Ray ray = generate_ray();
     vec3 color = traverse(ray);
-
-    // vec3 color = 0.5 - dir * 0.5;
-    // vec3 color = vec3(glPos / vec2(glSize), 1);
-    // vec3 color = vec3(camera.sensorSize.z);
-
     img[glPos.y * glSize.x + glPos.x] = color_pack(color);
 }

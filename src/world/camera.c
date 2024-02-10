@@ -4,6 +4,16 @@
 #include "camera.h"
 #include "logger/logger.h"
 
+#define PI 3.14159265358979323846
+
+float deg2rad(float deg) {
+    return deg * PI / 180;
+}
+
+float rad2deg(float rad) {
+    return rad * 180 / PI;
+}
+
 Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
     INFO("creating camera");
 
@@ -12,7 +22,8 @@ Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
         .data = {
             .pos = {0, 0, 0},
             .dir = {0, 0, 0},
-            .sensorSize = (vec3){sensorSize.x, sensorSize.y, focalLength},
+            .sensorSize = sensorSize,
+            .focalLength = focalLength,
         },
     };
 
@@ -33,23 +44,16 @@ void camera_update(Camera* camera) {
     mc_buffer_write(camera->dataBuff, 0, sizeof camera->data, &camera->data);
 }
 
+void camera_get(Camera* camera, vec3* pos, vec3* dir) {
+    *pos = camera->data.pos;
+    *dir = (vec3){
+        rad2deg(camera->data.dir.x),
+        rad2deg(camera->data.dir.y),
+        rad2deg(camera->data.dir.z),
+    };
+}
+
 void camera_set(Camera* camera, vec3 pos, vec3 dir) {
     camera->data.pos = pos;
-    camera->data.dir = dir;
-}
-
-void camera_move(Camera* camera, vec3 delta) {
-    camera->data.pos = (vec3){
-        camera->data.pos.x + delta.x,
-        camera->data.pos.y + delta.y,
-        camera->data.pos.z + delta.z,
-    };
-}
-
-void camera_rotate(Camera* camera, vec3 delta) {
-    camera->data.dir = (vec3){
-        camera->data.dir.x + delta.x,
-        camera->data.dir.y + delta.y,
-        camera->data.dir.z + delta.z,
-    };
+    camera->data.dir = (vec3){deg2rad(dir.x), deg2rad(dir.y), deg2rad(dir.z)};
 }

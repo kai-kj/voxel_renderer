@@ -11,25 +11,25 @@ int main(int argc, char** argv) {
     set_log_level(MC_LOG_LEVEL_DEBUG);
 
     uvec3 sceneSize = {50, 50, 50};
-    uvec2 imageSize = {100, 100};
+    uvec2 imageSize = {500, 500};
 
     INFO("creating microcompute instance");
     mc_Instance_t* instance = mc_instance_create(new_log, NULL);
     mc_Device_t* dev = mc_instance_get_devices(instance)[0];
 
     Renderer* renderer = renderer_create(dev, imageSize, SHADER_PATH);
-    Scene* scene = scene_create(dev, sceneSize, (vec3){0, 0, 0});
+    Scene* scene = scene_create(dev, sceneSize, (vec3){0, 0.8, 1.0}, 1.0);
     Camera* camera = camera_create(dev, (vec2){1, 1}, 1);
 
-    camera_set(camera, (vec3){25, 20, 0}, (vec3){0, 0, 0});
+    camera_set(camera, (vec3){25, 30, 0}, (vec3){0, 0, 0});
 
     for (unsigned int i = 0; i < sceneSize.x; i++) {
         for (unsigned int j = 0; j < sceneSize.y; j++) {
-            scene_set(scene, (uvec3){i, 10, j}, VOXEL_LAMBERT(1.0, 1.0, 1.0));
+            scene_set(scene, (uvec3){i, 40, j}, VOXEL_LAMBERT(1.0, 1.0, 1.0));
         }
     }
 
-    scene_set(scene, (uvec3){25, 20, 40}, VOXEL_LAMBERT(1.0, 0.0, 0.0));
+    scene_set(scene, (uvec3){25, 39, 25}, VOXEL_LAMBERT(1.0, 0.0, 0.0));
 
     scene_update_data(scene);
     scene_update_voxels(scene);

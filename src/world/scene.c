@@ -23,11 +23,22 @@ static uint32_t coord_to_index(Scene* scene, uvec3 pos) {
          + pos.y * scene->data.size.x + pos.x;
 }
 
-Scene* scene_create(mc_Device_t* device, uvec3 size, vec3 bgColor) {
+Scene* scene_create(
+    mc_Device_t* device,
+    uvec3 size,
+    vec3 bgColor,
+    float bgIntensity
+) {
     INFO("creating scene");
 
     Scene* scene = malloc(sizeof *scene);
-    *scene = (Scene){.data = {.size = size, .bgColor = bgColor}};
+    *scene = (Scene){
+        .data = {
+            .size = size,
+            .bgColor = bgColor,
+            .bgIntensity = bgIntensity,
+        },
+    };
 
     scene->voxels = malloc(voxels_size(scene));
     for (uint32_t i = 0; i < voxels_count(scene); i++)
