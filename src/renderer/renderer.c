@@ -9,7 +9,7 @@ Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
     char* rendererShaderPath,
-    unsigned int maxRayDepth
+    uint maxRayDepth
 ) {
     INFO("creating renderer");
 
@@ -62,7 +62,7 @@ char* renderer_render(
     INFO("rendering %d iteration(s)", iterations);
 
     double start = mc_get_time();
-    srand((unsigned int)start);
+    srand((uint)start);
 
     for (uint32_t i = 0; i < iterations; i++) {
         renderer->info.iteration = i;

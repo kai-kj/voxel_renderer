@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include "vec_types/vec_types.h"
 
 /**
  * @brief The type of a voxel
@@ -17,8 +17,8 @@ typedef enum {
  * @brief A voxel
  */
 typedef struct {
-    uint32_t d0; ///< Type and color of the voxel
-    uint32_t d1; ///< Other properties of the voxel
+    uint d0; ///< Type and color of the voxel
+    uint d1; ///< Other properties of the voxel
 } Voxel;
 
 /**

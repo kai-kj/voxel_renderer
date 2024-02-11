@@ -4,3 +4,6 @@
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
+
+#define VEC_TYPES_H
+#include "vec_types/vec_types.h"

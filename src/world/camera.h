@@ -1,7 +1,7 @@
 #pragma once
 
 #include "microcompute/microcompute.h"
-#include "vector/vector.h"
+#include "vec_types/vec_types.h"
 
 /**
  * @brief The data for a camera

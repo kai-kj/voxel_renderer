@@ -2,7 +2,7 @@
 
 #include "microcompute/microcompute.h"
 
-#include "vector/vector.h"
+#include "vec_types/vec_types.h"
 #include "voxel.h"
 
 /**

@@ -2,11 +2,11 @@
 
 #include "voxel.h"
 
-uint8_t f2b(float f) {
+char f2b(float f) {
     return fmin(fmax(0.0, f), 1.0) * 255;
 }
 
-float b2f(uint8_t b) {
+float b2f(char b) {
     return b / 255.0;
 }
 

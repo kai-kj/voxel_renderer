@@ -1,3 +1,6 @@
 [submodule "include/microcompute"]
 	path = include/microcompute
 	url = git@github.com:kal39/microcompute.git
+[submodule "include/vec_types"]
+	path = include/vec_types
+	url = git@github.com:kal39/vec_types.git

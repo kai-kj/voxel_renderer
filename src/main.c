@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
 
     camera_set(camera, (vec3){25, 30, 0}, (vec3){0, 0, 0});
 
-    for (unsigned int i = 0; i < sceneSize.x; i++) {
-        for (unsigned int j = 0; j < sceneSize.y; j++) {
+    for (uint i = 0; i < sceneSize.x; i++) {
+        for (uint j = 0; j < sceneSize.y; j++) {
             scene_set(scene, (uvec3){i, 40, j}, VOXEL_LAMBERT(1.0, 1.0, 1.0));
         }
     }

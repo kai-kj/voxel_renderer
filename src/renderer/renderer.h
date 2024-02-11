@@ -5,9 +5,9 @@
  * @brief The data for the renderer
  */
 typedef struct {
-    unsigned int maxRayDepth; ///< The maximum ray depth
-    unsigned int iteration;   ///< The current iteration
-    float seed;               ///< The seed for the renderer
+    uint maxRayDepth; ///< The maximum ray depth
+    uint iteration;   ///< The current iteration
+    float seed;       ///< The seed for the renderer
 } RendererInfo;
 
 /**
@@ -34,7 +34,7 @@ Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
     char* rendererShaderPath,
-    unsigned int maxRayDepth
+    uint maxRayDepth
 );
 
 /**
