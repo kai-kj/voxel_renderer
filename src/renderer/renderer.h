@@ -2,13 +2,23 @@
 #include "world/scene.h"
 
 /**
+ * @brief The data for the renderer
+ */
+typedef struct {
+    unsigned int maxRayDepth; ///< The maximum ray depth
+    unsigned int iteration;   ///< The current iteration
+    float seed;               ///< The seed for the renderer
+} RendererInfo;
+
+/**
  * @brief A renderer
  */
 typedef struct {
+    RendererInfo info;      ///< The info for the renderer
     mc_Program_t* program;  ///< The program for the renderer
     uvec2 imageSize;        ///< The size of the image to render
     char* image;            ///< The image data
-    mc_Buffer_t* seedBuff;  ///< The buffer for the seed
+    mc_Buffer_t* infoBuff;  ///< The buffer for the info
     mc_Buffer_t* imageBuff; ///< The buffer for the image
 } Renderer;
 
@@ -23,7 +33,8 @@ typedef struct {
 Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
-    char* rendererShaderPath
+    char* rendererShaderPath,
+    unsigned int maxRayDepth
 );
 
 /**

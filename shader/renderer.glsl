@@ -9,8 +9,11 @@ ivec2 glSize = ivec2(gl_NumWorkGroups.xy);
 // defines
 //============================================================================//
 
-#define VOXEL_TYPE_EMPTY 0
-#define VOXEL_TYPE_LAMBERT 1
+#define VOXEL_TYPE_NONE 0
+#define VOXEL_TYPE_EMPTY 1
+#define VOXEL_TYPE_LIGHT 2
+#define VOXEL_TYPE_LAMBERT 3
+#define VOXEL_TYPE_METAL 4
 
 //============================================================================//
 // structs
@@ -32,6 +35,12 @@ struct Voxel {
     vec4 properties;
 };
 
+struct Hit {
+    vec3 pos;
+    vec3 normal;
+    Voxel voxel;
+};
+
 struct SceneData {
     uvec3 size;
     vec3 bgColor;
@@ -50,6 +59,8 @@ struct CameraData {
 //============================================================================//
 
 layout(std430, binding = 0) buffer buff0 {
+    uint maxRayDepth;
+    uint iteration;
     float seed;
 };
 
@@ -84,6 +95,9 @@ float rand() {
 // utility
 //============================================================================//
 
+#define EMPTY_HIT()                                                            \
+    Hit(vec3(0), vec3(0), Voxel(VOXEL_TYPE_EMPTY, vec3(0), vec4(0)))
+
 vec2 rotate(vec2 v, float a) {
     float s = sin(a);
     float c = cos(a);
@@ -96,11 +110,6 @@ int color_pack(vec3 color) {
 }
 
 Voxel get_voxel(uvec3 pos) {
-    if (pos.x >= scene.size.x || pos.y >= scene.size.y
-        || pos.z >= scene.size.z) {
-        return Voxel(VOXEL_TYPE_EMPTY, vec3(0), vec4(0));
-    }
-
     uint idx = (pos.z * scene.size.y + pos.y) * scene.size.x + pos.x;
     VoxelPacked packedData = voxels[idx];
 
@@ -131,7 +140,7 @@ Ray generate_ray() {
     return Ray(camera.pos, dir);
 }
 
-vec3 traverse(Ray ray) {
+Hit traverse(Ray ray) {
     vec3 tDelta = abs(1.0 / ray.dir);
     vec3 tMax = tDelta * (0.5 - mod(ray.origin, 1.0));
 
@@ -140,30 +149,38 @@ vec3 traverse(Ray ray) {
 
     while (true) {
         Voxel voxel = get_voxel(uvec3(pos));
-        if (voxel.type != VOXEL_TYPE_EMPTY) return voxel.color;
+
+        if (voxel.type != VOXEL_TYPE_EMPTY)
+            return Hit(vec3(pos), vec3(0), voxel);
 
         if (tMax.x < tMax.y) {
             if (tMax.x < tMax.z) {
                 pos.x += step.x;
                 tMax.x += tDelta.x;
-                if (pos.x < 0 || pos.x >= scene.size.x) return scene.bgColor;
+                if (pos.x < 0 || pos.x >= scene.size.x) return EMPTY_HIT();
             } else {
                 pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return scene.bgColor;
+                if (pos.z < 0 || pos.z >= scene.size.z) return EMPTY_HIT();
             }
         } else {
             if (tMax.y < tMax.z) {
                 pos.y += step.y;
                 tMax.y += tDelta.y;
-                if (pos.y < 0 || pos.y >= scene.size.y) return scene.bgColor;
+                if (pos.y < 0 || pos.y >= scene.size.y) return EMPTY_HIT();
             } else {
                 pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return scene.bgColor;
+                if (pos.z < 0 || pos.z >= scene.size.z) return EMPTY_HIT();
             }
         }
     }
+}
+
+vec3 trace(Ray ray) {
+    Hit hit = traverse(ray);
+    if (hit.voxel.type == VOXEL_TYPE_EMPTY) return scene.bgColor;
+    else return hit.voxel.color;
 }
 
 //============================================================================//
@@ -172,6 +189,6 @@ vec3 traverse(Ray ray) {
 
 void main() {
     Ray ray = generate_ray();
-    vec3 color = traverse(ray);
+    vec3 color = trace(ray);
     img[glPos.y * glSize.x + glPos.x] = color_pack(color);
 }

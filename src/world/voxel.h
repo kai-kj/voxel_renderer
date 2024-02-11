@@ -6,8 +6,11 @@
  * @brief The type of a voxel
  */
 typedef enum {
+    VOXEL_TYPE_NONE,    ///< No type (eg: hit skybox)
     VOXEL_TYPE_EMPTY,   ///< An empty voxel
+    VOXEL_TYPE_LIGHT,   ///< A light source voxel
     VOXEL_TYPE_LAMBERT, ///< A Lambertian voxel
+    VOXEL_TYPE_METAL,   ///< A metal voxel
 } VoxelType;
 
 /**
@@ -75,7 +78,19 @@ void voxel_unpack(
 #define VOXEL_EMPTY() voxel_pack(VOXEL_TYPE_EMPTY, 0, 0, 0, 0, 0, 0, 0)
 
 /**
- * @brief Create a Lambertian surface
+ * @brief Create a light source voxel
+ *
+ * @param r The red component of the color (0 ~ 1)
+ * @param g The green component of the color (0 ~ 1)
+ * @param b The blue component of the color (0 ~ 1)
+ * @param brightness The brightness of the light (0 ~ 1)
+ * @return A light source voxel
+ */
+#define VOXEL_LIGHT(r, g, b, brightness)                                       \
+    voxel_pack(VOXEL_TYPE_LIGHT, r, g, b, brightness, 0, 0, 0)
+
+/**
+ * @brief Create a Lambertian voxel
  *
  * @param r The red component of the color (0 ~ 1)
  * @param g The green component of the color (0 ~ 1)
@@ -84,3 +99,16 @@ void voxel_unpack(
  */
 #define VOXEL_LAMBERT(r, g, b)                                                 \
     voxel_pack(VOXEL_TYPE_LAMBERT, r, g, b, 0, 0, 0, 0)
+
+/**
+ * @brief Create a metal voxel
+ *
+ * @param r The red component of the color (0 ~ 1)
+ * @param g The green component of the color (0 ~ 1)
+ * @param b The blue component of the color (0 ~ 1)
+ * @param reflectiveness The reflectiveness of the metal (0 ~ 1)
+ * @param roughness The roughness of the metal (0 ~ 1)
+ * @return A metal voxel
+ */
+#define VOXEL_METAL(r, g, b, reflectiveness, roughness)                        \
+    voxel_pack(VOXEL_TYPE_METAL, r, g, b, reflectiveness, roughness, 0, 0)

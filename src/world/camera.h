@@ -8,7 +8,7 @@
  */
 typedef struct {
     vec3 pos;          ///< The position of the camera
-    vec3 dir;          ///< The direction of the camera (LR, UD, _)
+    vec3 dir;          ///< The direction of the camera (LR, UD, rotation)
     vec2 sensorSize;   ///< The size of the camera sensor
     float focalLength; ///< The focal length of the camera
 } CameraData;

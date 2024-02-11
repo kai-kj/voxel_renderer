@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
     mc_Instance_t* instance = mc_instance_create(new_log, NULL);
     mc_Device_t* dev = mc_instance_get_devices(instance)[0];
 
-    Renderer* renderer = renderer_create(dev, imageSize, SHADER_PATH);
+    Renderer* renderer = renderer_create(dev, imageSize, SHADER_PATH, 10);
     Scene* scene = scene_create(dev, sceneSize, (vec3){0, 0.8, 1.0}, 1.0);
     Camera* camera = camera_create(dev, (vec2){1, 1}, 1);
 

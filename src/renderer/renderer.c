@@ -8,18 +8,21 @@
 Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
-    char* rendererShaderPath
+    char* rendererShaderPath,
+    unsigned int maxRayDepth
 ) {
     INFO("creating renderer");
 
     Renderer* renderer = malloc(sizeof *renderer);
     *renderer = (Renderer){
+        .info = {maxRayDepth, 0, 0},
         .program = mc_program_create(dev, rendererShaderPath, "main"),
         .imageSize = imageSize,
         .image = malloc(imageSize.x * imageSize.y * 4),
-        .seedBuff = mc_buffer_create(dev, sizeof(float)),
-        .imageBuff = mc_buffer_create(dev, imageSize.x * imageSize.y * 4),
     };
+
+    renderer->infoBuff = mc_buffer_create(dev, sizeof renderer->info);
+    renderer->imageBuff = mc_buffer_create(dev, imageSize.x * imageSize.y * 4);
 
     return mc_program_is_initialized(renderer->program) ? renderer : NULL;
 }
@@ -27,9 +30,9 @@ Renderer* renderer_create(
 void renderer_destroy(Renderer* renderer) {
     INFO("destroying renderer");
 
-    if (renderer->seedBuff) {
-        mc_buffer_destroy(renderer->seedBuff);
-        renderer->seedBuff = NULL;
+    if (renderer->infoBuff) {
+        mc_buffer_destroy(renderer->infoBuff);
+        renderer->infoBuff = NULL;
     }
 
     if (renderer->imageBuff) {
@@ -62,15 +65,22 @@ char* renderer_render(
     srand((unsigned int)start);
 
     for (uint32_t i = 0; i < iterations; i++) {
-        float seed = (float)rand() / (float)RAND_MAX;
-        mc_buffer_write(renderer->seedBuff, 0, sizeof(float), &seed);
+        renderer->info.iteration = i;
+        renderer->info.seed = (float)rand() / (float)RAND_MAX;
+
+        mc_buffer_write(
+            renderer->infoBuff,
+            0,
+            sizeof renderer->info,
+            &renderer->info
+        );
 
         mc_program_run(
             renderer->program,
             renderer->imageSize.x,
             renderer->imageSize.y,
             1,
-            renderer->seedBuff,
+            renderer->infoBuff,
             renderer->imageBuff,
             scene->dataBuff,
             scene->voxelBuff,
