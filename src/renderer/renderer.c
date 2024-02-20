@@ -83,6 +83,13 @@ char* renderer_render(
         renderer->info.iteration = i + 1;
         renderer->info.seed = (float)rand() / (float)RAND_MAX;
 
+        INFO(
+            "rendering iteration %d/%d (%f%%)",
+            i + 1,
+            iterations,
+            (i + 1) / (float)iterations * 100
+        );
+
         mc_buffer_write(
             renderer->infoBuff,
             0,

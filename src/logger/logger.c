@@ -61,7 +61,7 @@ void new_log(
     gettimeofday(&tv, NULL);
 
     printf(
-        "%s%04d-%02d-%02d %02d:%02d:%02.4f │ %s │ %s │ %s",
+        "%s%04d-%02d-%02d %02d:%02d:%07.4f │ %s │ %s │ %s",
         colorStr,
         tm->tm_year + 1900,
         tm->tm_mon + 1,

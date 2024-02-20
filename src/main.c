@@ -8,7 +8,7 @@ char* OUT_FILE = "out.bmp";
 char* RENDERER_PATH = "renderer.spv";
 char* OUTPUT_PATH = "output.spv";
 uvec3 SCENE_SZ = {25, 25, 25};
-uvec2 IMAGE_SZ = {1920, 1080};
+uvec2 IMAGE_SZ = {1280, 720};
 
 void create_cornell_box(Scene* scene) {
     Voxel white = voxel(0.8, 0.8, 0.8, 0.0);
@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
     scene_update_voxels(scene);
     camera_update(camera);
 
-    char* image = renderer_render(renderer, scene, camera, 25);
+    char* image = renderer_render(renderer, scene, camera, 50);
 
     INFO("writing image to %s", OUT_FILE);
     stbi_write_bmp(OUT_FILE, IMAGE_SZ.x, IMAGE_SZ.y, 4, image);
