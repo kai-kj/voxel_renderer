@@ -2,7 +2,7 @@
 
 #include "voxel.h"
 
-char f2b(float f) {
+unsigned char f2b(float f) {
     return fmin(fmax(0.0, f), 1.0) * 255;
 }
 

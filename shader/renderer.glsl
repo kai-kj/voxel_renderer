@@ -9,6 +9,8 @@ ivec2 glSize = ivec2(gl_NumWorkGroups.xy);
 // defines
 //============================================================================//
 
+#define EPSILON 0.0001
+
 #define VOXEL_TYPE_NONE 0
 #define VOXEL_TYPE_EMPTY 1
 #define VOXEL_TYPE_LIGHT 2
@@ -36,8 +38,8 @@ struct Voxel {
 };
 
 struct Hit {
-    vec3 pos;
-    vec3 normal;
+    float dist;
+    ivec3 norm;
     Voxel voxel;
 };
 
@@ -95,8 +97,9 @@ float rand() {
 // utility
 //============================================================================//
 
-#define EMPTY_HIT()                                                            \
-    Hit(vec3(0), vec3(0), Voxel(VOXEL_TYPE_EMPTY, vec3(0), vec4(0)))
+#define VOXEL_NONE Voxel(VOXEL_TYPE_NONE, vec3(0), vec4(0))
+
+#define EMPTY_HIT Hit(0, ivec3(0), VOXEL_NONE)
 
 vec2 rotate(vec2 v, float a) {
     float s = sin(a);
@@ -125,11 +128,19 @@ Voxel get_voxel(uvec3 pos) {
     return Voxel(type, vec3(r, g, b) / 255.0, vec4(p0, p1, p2, p3) / 255.0);
 }
 
+bool in_scene_bounds(ivec3 pos) {
+    return all(lessThanEqual(ivec3(0), pos)) && all(lessThan(pos, scene.size));
+}
+
+bool in_scene_bounds(vec3 pos) {
+    return all(lessThanEqual(vec3(0), pos)) && all(lessThan(pos, scene.size));
+}
+
 //============================================================================//
 // ray tracing
 //============================================================================//
 
-Ray generate_ray() {
+Ray generate_first_ray() {
     vec2 pos = (vec2(glPos - glSize / 2) / vec2(glSize)) * camera.sensorSize;
     pos = rotate(pos, camera.dir.z);
 
@@ -137,50 +148,74 @@ Ray generate_ray() {
     dir.xz = rotate(dir.xz, camera.dir.x);
     dir.yz = rotate(dir.yz, camera.dir.y);
 
-    return Ray(camera.pos, dir);
+    return Ray(camera.pos, dir + vec3(EPSILON));
+}
+
+float ray_scene_intersection(Ray ray) {
+    if (in_scene_bounds(ray.origin)) return 0;
+
+    vec3 dirInv = 1.0 / ray.dir;
+    vec3 tBottom = dirInv * (vec3(0) - ray.origin);
+    vec3 tTop = dirInv * (scene.size - ray.origin);
+
+    vec3 tMin = min(tTop, tBottom);
+    vec3 tMax = max(tTop, tBottom);
+    vec2 d = max(tMin.xx, tMin.yz);
+    float dLow = max(d.x, d.y);
+    d = min(tMax.xx, tMax.yz);
+    float dHigh = min(d.x, d.y);
+
+    return dHigh > max(dLow, 0.0) ? dLow : -1;
 }
 
 Hit traverse(Ray ray) {
-    vec3 tDelta = abs(1.0 / ray.dir);
-    vec3 tMax = tDelta * (0.5 - mod(ray.origin, 1.0));
+    float d = ray_scene_intersection(ray);
+    ray.origin += ray.dir * d * (1 + EPSILON);
 
+    ivec3 pos = ivec3(floor(ray.origin));
     ivec3 step = ivec3(sign(ray.dir));
-    ivec3 pos = ivec3(ray.origin);
+
+    vec3 tDelta = abs(length(ray.dir) / ray.dir);
+    vec3 tMax
+        = (sign(ray.dir) * (pos - ray.origin) + (sign(ray.dir) * 0.5) + 0.5)
+        * tDelta;
+
+    bvec3 mask = bvec3(false, false, false);
 
     while (true) {
+        if (!in_scene_bounds(pos)) return EMPTY_HIT;
+
         Voxel voxel = get_voxel(uvec3(pos));
 
         if (voxel.type != VOXEL_TYPE_EMPTY)
-            return Hit(vec3(pos), vec3(0), voxel);
+            return Hit(
+                length((tMax - tDelta) * vec3(mask)) + d,
+                ivec3(mask) * step,
+                voxel
+            );
 
         if (tMax.x < tMax.y) {
             if (tMax.x < tMax.z) {
-                pos.x += step.x;
                 tMax.x += tDelta.x;
-                if (pos.x < 0 || pos.x >= scene.size.x) return EMPTY_HIT();
+                pos.x += step.x;
+                mask = bvec3(true, false, false);
             } else {
-                pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return EMPTY_HIT();
+                pos.z += step.z;
+                mask = bvec3(false, false, true);
             }
         } else {
             if (tMax.y < tMax.z) {
-                pos.y += step.y;
                 tMax.y += tDelta.y;
-                if (pos.y < 0 || pos.y >= scene.size.y) return EMPTY_HIT();
+                pos.y += step.y;
+                mask = bvec3(false, true, false);
             } else {
-                pos.z += step.z;
                 tMax.z += tDelta.z;
-                if (pos.z < 0 || pos.z >= scene.size.z) return EMPTY_HIT();
+                pos.z += step.z;
+                mask = bvec3(false, false, true);
             }
         }
     }
-}
-
-vec3 trace(Ray ray) {
-    Hit hit = traverse(ray);
-    if (hit.voxel.type == VOXEL_TYPE_EMPTY) return scene.bgColor;
-    else return hit.voxel.color;
 }
 
 //============================================================================//
@@ -188,7 +223,20 @@ vec3 trace(Ray ray) {
 //============================================================================//
 
 void main() {
-    Ray ray = generate_ray();
-    vec3 color = trace(ray);
+    Ray ray = generate_first_ray();
+
+    Hit hit = traverse(ray);
+
+    vec3 color;
+    if (hit.voxel.type == VOXEL_TYPE_NONE) color = scene.bgColor;
+    else color = hit.voxel.color;
+
+    if (hit.norm.x != 0) color *= 0.9;
+    if (hit.norm.y != 0) color *= 0.8;
+
+    vec3 pos = ray.origin + ray.dir * hit.dist;
+
+    // color = pos / scene.size;
+
     img[glPos.y * glSize.x + glPos.x] = color_pack(color);
 }
