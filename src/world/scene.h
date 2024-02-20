@@ -9,9 +9,8 @@
  * @brief The data for a scene
  */
 typedef struct {
-    uvec3 size;        ///< The size of the scene
-    vec3 bgColor;      ///< The background color of the scene
-    float bgIntensity; ///< The intensity/brightness of the background color
+    uvec3 size;   ///< The size of the scene
+    vec4 bgColor; ///< The background color and emission of the scene
 } SceneData;
 
 /**
@@ -30,14 +29,14 @@ typedef struct {
  * @param device The device to create the scene on
  * @param size The size of the scene
  * @param bgColor The background color of the scene
- * @param bgIntensity The intensity/brightness of the background color
+ * @param bgEmission The intensity/brightness of the background color
  * @return A new scene
  */
 Scene* scene_create(
     mc_Device_t* device,
     uvec3 size,
     vec3 bgColor,
-    float bgIntensity
+    float bgEmission
 );
 
 /**
@@ -69,12 +68,3 @@ void scene_update_voxels(Scene* scene);
  * @param voxel The new voxel
  */
 void scene_set(Scene* scene, uvec3 pos, Voxel voxel);
-
-/**
- * @brief Get a voxel from a scene
- *
- * @param scene The scene to get the voxel from
- * @param pos The position of the voxel
- * @return The voxel
- */
-Voxel scene_get(Scene* scene, uvec3 pos);

@@ -12,8 +12,16 @@ add_custom_command(
     VERBATIM
 )
 
+set(OUTPUT_SPV_SRC ${CMAKE_CURRENT_SOURCE_DIR}/shader/output.glsl)
+add_custom_command(
+    OUTPUT output.spv
+    COMMAND glslangValidator -V -S comp ${OUTPUT_SPV_SRC} -o output.spv
+    DEPENDS ${OUTPUT_SPV_SRC}
+    VERBATIM
+)
+
 file(GLOB_RECURSE C_FILES src/*.c)
-add_executable(voxel_renderer ${CPP_FILES} ${C_FILES} renderer.spv)
+add_executable(voxel_renderer ${CPP_FILES} ${C_FILES} renderer.spv output.spv)
 
 target_include_directories(voxel_renderer PRIVATE src include)
 target_link_libraries(voxel_renderer PRIVATE m vulkan)

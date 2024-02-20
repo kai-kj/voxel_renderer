@@ -27,7 +27,7 @@ Scene* scene_create(
     mc_Device_t* device,
     uvec3 size,
     vec3 bgColor,
-    float bgIntensity
+    float bgEmission
 ) {
     INFO("creating scene");
 
@@ -35,14 +35,13 @@ Scene* scene_create(
     *scene = (Scene){
         .data = {
             .size = size,
-            .bgColor = bgColor,
-            .bgIntensity = bgIntensity,
+            .bgColor = (vec4){bgColor.r, bgColor.g, bgColor.b, bgEmission},
         },
     };
 
     scene->voxels = malloc(voxels_size(scene));
     for (uint32_t i = 0; i < voxels_count(scene); i++)
-        scene->voxels[i] = VOXEL_EMPTY();
+        scene->voxels[i] = voxel_empty();
 
     scene->dataBuff
         = mc_buffer_create_from(device, sizeof scene->data, &scene->data);
@@ -74,9 +73,4 @@ void scene_update_voxels(Scene* scene) {
 void scene_set(Scene* scene, uvec3 pos, Voxel voxel) {
     if (!coord_in_bounds(scene, pos)) return;
     scene->voxels[coord_to_index(scene, pos)] = voxel;
-}
-
-Voxel scene_get(Scene* scene, uvec3 pos) {
-    if (!coord_in_bounds(scene, pos)) return VOXEL_EMPTY();
-    return scene->voxels[coord_to_index(scene, pos)];
 }

@@ -9,6 +9,7 @@ Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
     char* rendererShaderPath,
+    char* outputShaderPath,
     uint maxRayDepth
 ) {
     INFO("creating renderer");
@@ -16,15 +17,19 @@ Renderer* renderer_create(
     Renderer* renderer = malloc(sizeof *renderer);
     *renderer = (Renderer){
         .info = {maxRayDepth, 0, 0},
-        .program = mc_program_create(dev, rendererShaderPath, "main"),
+        .renderProgram = mc_program_create(dev, rendererShaderPath, "main"),
+        .outputProgram = mc_program_create(dev, outputShaderPath, "main"),
         .imageSize = imageSize,
         .image = malloc(imageSize.x * imageSize.y * 4),
     };
 
     renderer->infoBuff = mc_buffer_create(dev, sizeof renderer->info);
-    renderer->imageBuff = mc_buffer_create(dev, imageSize.x * imageSize.y * 4);
+    renderer->fImageBuff
+        = mc_buffer_create(dev, imageSize.x * imageSize.y * sizeof(vec3));
+    renderer->iImageBuff
+        = mc_buffer_create(dev, imageSize.x * imageSize.y * sizeof(int));
 
-    return mc_program_is_initialized(renderer->program) ? renderer : NULL;
+    return renderer;
 }
 
 void renderer_destroy(Renderer* renderer) {
@@ -35,9 +40,14 @@ void renderer_destroy(Renderer* renderer) {
         renderer->infoBuff = NULL;
     }
 
-    if (renderer->imageBuff) {
-        mc_buffer_destroy(renderer->imageBuff);
-        renderer->imageBuff = NULL;
+    if (renderer->fImageBuff) {
+        mc_buffer_destroy(renderer->fImageBuff);
+        renderer->fImageBuff = NULL;
+    }
+
+    if (renderer->iImageBuff) {
+        mc_buffer_destroy(renderer->iImageBuff);
+        renderer->iImageBuff = NULL;
     }
 
     if (renderer->image) {
@@ -45,9 +55,14 @@ void renderer_destroy(Renderer* renderer) {
         renderer->image = NULL;
     }
 
-    if (renderer->program) {
-        mc_program_destroy(renderer->program);
-        renderer->program = NULL;
+    if (renderer->renderProgram) {
+        mc_program_destroy(renderer->renderProgram);
+        renderer->renderProgram = NULL;
+    }
+
+    if (renderer->outputProgram) {
+        mc_program_destroy(renderer->outputProgram);
+        renderer->outputProgram = NULL;
     }
 
     free(renderer);
@@ -65,7 +80,7 @@ char* renderer_render(
     srand((uint)start);
 
     for (uint32_t i = 0; i < iterations; i++) {
-        renderer->info.iteration = i;
+        renderer->info.iteration = i + 1;
         renderer->info.seed = (float)rand() / (float)RAND_MAX;
 
         mc_buffer_write(
@@ -76,12 +91,12 @@ char* renderer_render(
         );
 
         mc_program_run(
-            renderer->program,
+            renderer->renderProgram,
             renderer->imageSize.x,
             renderer->imageSize.y,
             1,
             renderer->infoBuff,
-            renderer->imageBuff,
+            renderer->fImageBuff,
             scene->dataBuff,
             scene->voxelBuff,
             camera->dataBuff
@@ -91,8 +106,17 @@ char* renderer_render(
     double elapsed = mc_get_time() - start;
     INFO("rendered %d iterations in %f seconds", iterations, elapsed);
 
+    mc_program_run(
+        renderer->outputProgram,
+        renderer->imageSize.x,
+        renderer->imageSize.y,
+        1,
+        renderer->fImageBuff,
+        renderer->iImageBuff
+    );
+
     mc_buffer_read(
-        renderer->imageBuff,
+        renderer->iImageBuff,
         0,
         renderer->imageSize.x * renderer->imageSize.y * 4,
         renderer->image

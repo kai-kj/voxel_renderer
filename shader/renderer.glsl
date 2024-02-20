@@ -9,13 +9,8 @@ ivec2 glSize = ivec2(gl_NumWorkGroups.xy);
 // defines
 //============================================================================//
 
-#define EPSILON 0.0001
-
-#define VOXEL_TYPE_NONE 0
-#define VOXEL_TYPE_EMPTY 1
-#define VOXEL_TYPE_LIGHT 2
-#define VOXEL_TYPE_LAMBERT 3
-#define VOXEL_TYPE_METAL 4
+#define EPSILON 0.00001
+#define PI 3.14159
 
 //============================================================================//
 // structs
@@ -32,28 +27,15 @@ struct VoxelPacked {
 };
 
 struct Voxel {
-    uint type;
+    bool isEmpty;
     vec3 color;
-    vec4 properties;
+    float emmision;
 };
 
 struct Hit {
     float dist;
     ivec3 norm;
     Voxel voxel;
-};
-
-struct SceneData {
-    uvec3 size;
-    vec3 bgColor;
-    float bgIntensity;
-};
-
-struct CameraData {
-    vec3 pos;
-    vec3 dir;
-    vec2 sensorSize;
-    float focalLegnth;
 };
 
 //============================================================================//
@@ -67,11 +49,12 @@ layout(std430, binding = 0) buffer buff0 {
 };
 
 layout(std430, binding = 1) buffer buff1 {
-    int img[];
+    vec3 img[];
 };
 
 layout(std430, binding = 2) buffer buff2 {
-    SceneData scene;
+    uvec3 sceneSize;
+    vec4 bgColor;
 };
 
 layout(std430, binding = 3) buffer buff3 {
@@ -79,27 +62,36 @@ layout(std430, binding = 3) buffer buff3 {
 };
 
 layout(std430, binding = 4) buffer buff4 {
-    CameraData camera;
+    vec3 cameraPos;
+    vec3 cameraDir;
+    vec2 cameraSensorSize;
+    float cameraFocalLegnth;
 };
 
 //============================================================================//
 // rng
 //============================================================================//
 
-float prev = glPos.y * glSize.x + glPos.x;
+float prev = seed;
 
 float rand() {
-    prev = fract(sin(dot(vec2(prev, seed), vec2(12.989, 78.233))) * 43758.545);
+    prev = fract(sin(dot(vec2(glPos) * prev, vec2(12.98, 78.23))) * 43758.54);
     return prev;
+}
+
+float rand(float min, float max) {
+    return rand() * (max - min) + min;
+}
+
+vec3 rand_unit() {
+    float theta = rand(-PI / 2, PI / 2);
+    float phi = rand(0, 2 * PI);
+    return vec3(cos(theta) * cos(phi), cos(theta) * sin(phi), sin(theta));
 }
 
 //============================================================================//
 // utility
 //============================================================================//
-
-#define VOXEL_NONE Voxel(VOXEL_TYPE_NONE, vec3(0), vec4(0))
-
-#define EMPTY_HIT Hit(0, ivec3(0), VOXEL_NONE)
 
 vec2 rotate(vec2 v, float a) {
     float s = sin(a);
@@ -107,33 +99,41 @@ vec2 rotate(vec2 v, float a) {
     return vec2(v.x * c - v.y * s, v.x * s + v.y * c);
 }
 
-int color_pack(vec3 color) {
-    ivec3 c = clamp(ivec3(color * 255), 0, 255);
-    return c.r << 0 | c.g << 8 | c.b << 16 | 255 << 24;
-}
-
-Voxel get_voxel(uvec3 pos) {
-    uint idx = (pos.z * scene.size.y + pos.y) * scene.size.x + pos.x;
-    VoxelPacked packedData = voxels[idx];
-
-    uint type = (packedData.d0 >> 24) & 0xFF;
-    uint r = (packedData.d0 >> 16) & 0xFF;
-    uint g = (packedData.d0 >> 8) & 0xFF;
-    uint b = (packedData.d0 >> 0) & 0xFF;
-    uint p0 = (packedData.d1 >> 24) & 0xFF;
-    uint p1 = (packedData.d1 >> 16) & 0xFF;
-    uint p2 = (packedData.d1 >> 8) & 0xFF;
-    uint p3 = (packedData.d1 >> 0) & 0xFF;
-
-    return Voxel(type, vec3(r, g, b) / 255.0, vec4(p0, p1, p2, p3) / 255.0);
-}
-
 bool in_scene_bounds(ivec3 pos) {
-    return all(lessThanEqual(ivec3(0), pos)) && all(lessThan(pos, scene.size));
+    return all(lessThanEqual(ivec3(0), pos)) && all(lessThan(pos, sceneSize));
 }
 
 bool in_scene_bounds(vec3 pos) {
-    return all(lessThanEqual(vec3(0), pos)) && all(lessThan(pos, scene.size));
+    return all(lessThanEqual(vec3(0), pos)) && all(lessThan(pos, sceneSize));
+}
+
+Ray create_ray(vec3 origin, vec3 dir) {
+    return Ray(origin, normalize(dir) + EPSILON);
+}
+
+float to_inf(float x) {
+    return tan(x * PI / 2);
+}
+
+//============================================================================//
+// voxel
+//============================================================================//
+
+#define VOXEL_NONE Voxel(false, vec3(0), 0)
+
+#define EMPTY_HIT Hit(0, ivec3(0), VOXEL_NONE)
+
+Voxel get_voxel(uvec3 pos) {
+    VoxelPacked packedData
+        = voxels[(pos.z * sceneSize.y + pos.y) * sceneSize.x + pos.x];
+
+    bool isEmpty = bool((packedData.d0 >> 24) & 0xFF);
+    float r = ((packedData.d0 >> 16) & 0xFF) / 255.0;
+    float g = ((packedData.d0 >> 8) & 0xFF) / 255.0;
+    float b = ((packedData.d0 >> 0) & 0xFF) / 255.0;
+    float e = ((packedData.d1 >> 24) & 0xFF) / 255.0;
+
+    return Voxel(isEmpty, vec3(r, g, b), to_inf(e));
 }
 
 //============================================================================//
@@ -141,14 +141,14 @@ bool in_scene_bounds(vec3 pos) {
 //============================================================================//
 
 Ray generate_first_ray() {
-    vec2 pos = (vec2(glPos - glSize / 2) / vec2(glSize)) * camera.sensorSize;
-    pos = rotate(pos, camera.dir.z);
+    vec2 pos = (vec2(glPos - glSize / 2) / vec2(glSize)) * cameraSensorSize;
+    pos = rotate(pos, cameraDir.z);
 
-    vec3 dir = normalize(vec3(pos, camera.focalLegnth));
-    dir.xz = rotate(dir.xz, camera.dir.x);
-    dir.yz = rotate(dir.yz, camera.dir.y);
+    vec3 dir = vec3(pos, cameraFocalLegnth);
+    dir.xz = rotate(dir.xz, cameraDir.x);
+    dir.yz = rotate(dir.yz, -cameraDir.y);
 
-    return Ray(camera.pos, dir + vec3(EPSILON));
+    return create_ray(cameraPos, dir);
 }
 
 float ray_scene_intersection(Ray ray) {
@@ -156,7 +156,7 @@ float ray_scene_intersection(Ray ray) {
 
     vec3 dirInv = 1.0 / ray.dir;
     vec3 tBottom = dirInv * (vec3(0) - ray.origin);
-    vec3 tTop = dirInv * (scene.size - ray.origin);
+    vec3 tTop = dirInv * (sceneSize - ray.origin);
 
     vec3 tMin = min(tTop, tBottom);
     vec3 tMax = max(tTop, tBottom);
@@ -170,7 +170,7 @@ float ray_scene_intersection(Ray ray) {
 
 Hit traverse(Ray ray) {
     float d = ray_scene_intersection(ray);
-    ray.origin += ray.dir * d * (1 + EPSILON);
+    ray.origin += ray.dir * d * (1 - EPSILON);
 
     ivec3 pos = ivec3(floor(ray.origin));
     ivec3 step = ivec3(sign(ray.dir));
@@ -183,17 +183,6 @@ Hit traverse(Ray ray) {
     bvec3 mask = bvec3(false, false, false);
 
     while (true) {
-        if (!in_scene_bounds(pos)) return EMPTY_HIT;
-
-        Voxel voxel = get_voxel(uvec3(pos));
-
-        if (voxel.type != VOXEL_TYPE_EMPTY)
-            return Hit(
-                length((tMax - tDelta) * vec3(mask)) + d,
-                ivec3(mask) * step,
-                voxel
-            );
-
         if (tMax.x < tMax.y) {
             if (tMax.x < tMax.z) {
                 tMax.x += tDelta.x;
@@ -215,7 +204,40 @@ Hit traverse(Ray ray) {
                 mask = bvec3(false, false, true);
             }
         }
+
+        if (!in_scene_bounds(pos)) return EMPTY_HIT;
+
+        Voxel voxel = get_voxel(uvec3(pos));
+
+        if (!voxel.isEmpty) {
+            float dist = length((tMax - tDelta) * vec3(mask)) + d;
+            ivec3 norm = ivec3(mask) * -step;
+            return Hit(dist, norm, voxel);
+        }
     }
+}
+
+vec3 get_color(Ray ray) {
+    vec3 throughput = vec3(1, 1, 1);
+
+    for (int i = 0; i < maxRayDepth; i++) {
+        Hit hit = traverse(ray);
+
+        if (hit.norm == ivec3(0))
+            return bgColor.rgb * to_inf(bgColor.a) * throughput;
+
+        if (hit.voxel.emmision > 0)
+            return hit.voxel.color * hit.voxel.emmision * throughput;
+
+        throughput *= hit.voxel.color;
+
+        ray = create_ray(
+            ray.origin + ray.dir * hit.dist + hit.norm * EPSILON,
+            hit.norm + rand_unit()
+        );
+    }
+
+    return vec3(0);
 }
 
 //============================================================================//
@@ -223,20 +245,8 @@ Hit traverse(Ray ray) {
 //============================================================================//
 
 void main() {
-    Ray ray = generate_first_ray();
-
-    Hit hit = traverse(ray);
-
-    vec3 color;
-    if (hit.voxel.type == VOXEL_TYPE_NONE) color = scene.bgColor;
-    else color = hit.voxel.color;
-
-    if (hit.norm.x != 0) color *= 0.9;
-    if (hit.norm.y != 0) color *= 0.8;
-
-    vec3 pos = ray.origin + ray.dir * hit.dist;
-
-    // color = pos / scene.size;
-
-    img[glPos.y * glSize.x + glPos.x] = color_pack(color);
+    vec3 color = get_color(generate_first_ray());
+    vec3 oldColor = img[glPos.y * glSize.x + glPos.x];
+    vec3 newColor = (oldColor * (iteration - 1) + color) / iteration;
+    img[glPos.y * glSize.x + glPos.x] = newColor;
 }

@@ -14,12 +14,14 @@ typedef struct {
  * @brief A renderer
  */
 typedef struct {
-    RendererInfo info;      ///< The info for the renderer
-    mc_Program_t* program;  ///< The program for the renderer
-    uvec2 imageSize;        ///< The size of the image to render
-    char* image;            ///< The image data
-    mc_Buffer_t* infoBuff;  ///< The buffer for the info
-    mc_Buffer_t* imageBuff; ///< The buffer for the image
+    RendererInfo info;           ///< The info for the renderer
+    mc_Program_t* renderProgram; ///< The program for the actual rendering
+    mc_Program_t* outputProgram; ///< The program for converting the output
+    uvec2 imageSize;             ///< The size of the image to render
+    char* image;                 ///< The image data
+    mc_Buffer_t* infoBuff;       ///< The buffer for the info
+    mc_Buffer_t* fImageBuff;     ///< The buffer for the float image
+    mc_Buffer_t* iImageBuff;     ///< The buffer for the int image
 } Renderer;
 
 /**
@@ -34,6 +36,7 @@ Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
     char* rendererShaderPath,
+    char* outputShaderPath,
     uint maxRayDepth
 );
 
