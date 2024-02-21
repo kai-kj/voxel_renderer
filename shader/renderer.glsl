@@ -1,9 +1,17 @@
 #version 430
 
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 1
+#endif
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 1
+#endif
+
+layout(local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
 
 ivec2 glPos = ivec2(gl_GlobalInvocationID.xy);
-ivec2 glSize = ivec2(gl_NumWorkGroups.xy);
+ivec2 glSize = ivec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
 
 //============================================================================//
 // defines

@@ -80,7 +80,9 @@ int main(int argc, char** argv) {
     mc_Device_t* dev = mc_instance_get_devices(instance)[0];
 
     Renderer* renderer
-        = renderer_create(dev, IMAGE_SZ, RENDERER_PATH, OUTPUT_PATH, 10);
+        = renderer_create(dev, IMAGE_SZ, RENDERER_PATH, OUTPUT_PATH, 25);
+    if (!renderer) return 1;
+
     Scene* scene = scene_create(dev, SCENE_SZ, (vec3){0.75, 0.75, 1.0}, 0.5);
     Camera* camera = camera_create(dev, (vec2){1.6, 0.9}, 1);
 
@@ -96,7 +98,7 @@ int main(int argc, char** argv) {
     scene_update_voxels(scene);
     camera_update(camera);
 
-    char* image = renderer_render(renderer, scene, camera, 50);
+    char* image = renderer_render(renderer, scene, camera, 100);
 
     INFO("writing image to %s", OUT_FILE);
     stbi_write_bmp(OUT_FILE, IMAGE_SZ.x, IMAGE_SZ.y, 4, image);

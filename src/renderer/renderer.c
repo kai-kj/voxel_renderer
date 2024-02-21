@@ -5,6 +5,14 @@
 #include "logger/logger.h"
 #include "renderer.h"
 
+#ifndef WORKGROUP_SIZE_X
+#define WORKGROUP_SIZE_X 1
+#endif
+
+#ifndef WORKGROUP_SIZE_Y
+#define WORKGROUP_SIZE_Y 1
+#endif
+
 Renderer* renderer_create(
     mc_Device_t* dev,
     uvec2 imageSize,
@@ -13,6 +21,36 @@ Renderer* renderer_create(
     uint maxRayDepth
 ) {
     INFO("creating renderer");
+
+    uint32_t maxWGSizeTotal = mc_device_get_max_workgroup_size_total(dev);
+    uint32_t* maxWGSizeShape = mc_device_get_max_workgroup_size_shape(dev);
+
+    if (WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y > maxWGSizeTotal) {
+        ERROR(
+            "total workgroup size (%d) too large, max: %d",
+            WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y,
+            maxWGSizeTotal
+        );
+        return NULL;
+    }
+
+    if (WORKGROUP_SIZE_X > maxWGSizeShape[0]) {
+        ERROR(
+            "workgroup size x (%d) too large, max: %d",
+            WORKGROUP_SIZE_X,
+            maxWGSizeShape[0]
+        );
+        return NULL;
+    }
+
+    if (WORKGROUP_SIZE_Y > maxWGSizeShape[1]) {
+        ERROR(
+            "workgroup size y (%d) too large, max: %d",
+            WORKGROUP_SIZE_Y,
+            maxWGSizeShape[1]
+        );
+        return NULL;
+    }
 
     Renderer* renderer = malloc(sizeof *renderer);
     *renderer = (Renderer){
@@ -29,7 +67,11 @@ Renderer* renderer_create(
     renderer->iImageBuff
         = mc_buffer_create(dev, imageSize.x * imageSize.y * sizeof(int));
 
-    return renderer;
+    bool failed = false;
+    if (!renderer->renderProgram) failed = true;
+    if (!renderer->outputProgram) failed = true;
+
+    return !failed ? renderer : NULL;
 }
 
 void renderer_destroy(Renderer* renderer) {
@@ -75,6 +117,8 @@ char* renderer_render(
     uint32_t iterations
 ) {
     INFO("rendering %d iteration(s)", iterations);
+    INFO("- WORK_GROUP_SIZE_X: %d", WORKGROUP_SIZE_X);
+    INFO("- WORK_GROUP_SIZE_Y: %d", WORKGROUP_SIZE_Y);
 
     double start = mc_get_time();
     srand((uint)start);
@@ -99,8 +143,8 @@ char* renderer_render(
 
         mc_program_run(
             renderer->renderProgram,
-            renderer->imageSize.x,
-            renderer->imageSize.y,
+            renderer->imageSize.x / WORKGROUP_SIZE_X,
+            renderer->imageSize.y / WORKGROUP_SIZE_Y,
             1,
             renderer->infoBuff,
             renderer->fImageBuff,
@@ -115,8 +159,8 @@ char* renderer_render(
 
     mc_program_run(
         renderer->outputProgram,
-        renderer->imageSize.x,
-        renderer->imageSize.y,
+        renderer->imageSize.x / WORKGROUP_SIZE_X,
+        renderer->imageSize.y / WORKGROUP_SIZE_Y,
         1,
         renderer->fImageBuff,
         renderer->iImageBuff
