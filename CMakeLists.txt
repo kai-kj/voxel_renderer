@@ -23,7 +23,7 @@ add_custom_command(
 )
 
 file(GLOB_RECURSE C_FILES src/*.c)
-add_executable(voxel_renderer ${CPP_FILES} ${C_FILES} renderer.spv output.spv)
+add_executable(voxel_renderer ${C_FILES} renderer.spv output.spv)
 
 target_include_directories(voxel_renderer PRIVATE src include)
 target_link_libraries(voxel_renderer PRIVATE m vulkan)

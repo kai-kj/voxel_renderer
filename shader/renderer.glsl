@@ -50,26 +50,26 @@ struct Hit {
 // buffers
 //============================================================================//
 
-layout(std430, binding = 0) buffer buff0 {
+layout(std430, binding = 0) readonly buffer buff0 {
     uint maxRayDepth;
     uint iteration;
     float seed;
 };
 
-layout(std430, binding = 1) buffer buff1 {
+layout(std430, binding = 1) coherent buffer buff1 {
     vec3 img[];
 };
 
-layout(std430, binding = 2) buffer buff2 {
+layout(std430, binding = 2) readonly buffer buff2 {
     uvec3 sceneSize;
     vec4 bgColor;
 };
 
-layout(std430, binding = 3) buffer buff3 {
+layout(std430, binding = 3) readonly buffer buff3 {
     VoxelPacked voxels[];
 };
 
-layout(std430, binding = 4) buffer buff4 {
+layout(std430, binding = 4) readonly buffer buff4 {
     vec3 cameraPos;
     vec3 cameraDir;
     vec2 cameraSensorSize;
