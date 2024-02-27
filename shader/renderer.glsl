@@ -29,21 +29,15 @@ struct Ray {
     vec3 dir;
 };
 
-struct VoxelPacked {
-    uint d0;
-    uint d1;
-};
-
-struct Voxel {
-    bool isEmpty;
+struct Material {
     vec3 color;
-    float emmision;
+    vec3 properties;
 };
 
 struct Hit {
     float dist;
     ivec3 norm;
-    Voxel voxel;
+    uint material;
 };
 
 //============================================================================//
@@ -62,14 +56,18 @@ layout(std430, binding = 1) coherent buffer buff1 {
 
 layout(std430, binding = 2) readonly buffer buff2 {
     uvec3 sceneSize;
-    vec4 bgColor;
+    Material bg;
 };
 
 layout(std430, binding = 3) readonly buffer buff3 {
-    VoxelPacked voxels[];
+    Material materials[];
 };
 
 layout(std430, binding = 4) readonly buffer buff4 {
+    uint voxels[];
+};
+
+layout(std430, binding = 5) readonly buffer buff5 {
     vec3 cameraPos;
     vec3 cameraDir;
     vec2 cameraSensorSize;
@@ -119,29 +117,8 @@ Ray create_ray(vec3 origin, vec3 dir) {
     return Ray(origin, normalize(dir) + EPSILON);
 }
 
-float to_inf(float x) {
-    return tan(x * PI / 2);
-}
-
-//============================================================================//
-// voxel
-//============================================================================//
-
-#define VOXEL_NONE Voxel(false, vec3(0), 0)
-
-#define EMPTY_HIT Hit(0, ivec3(0), VOXEL_NONE)
-
-Voxel get_voxel(uvec3 pos) {
-    VoxelPacked packedData
-        = voxels[(pos.z * sceneSize.y + pos.y) * sceneSize.x + pos.x];
-
-    bool isEmpty = bool((packedData.d0 >> 24) & 0xFF);
-    float r = ((packedData.d0 >> 16) & 0xFF) / 255.0;
-    float g = ((packedData.d0 >> 8) & 0xFF) / 255.0;
-    float b = ((packedData.d0 >> 0) & 0xFF) / 255.0;
-    float e = ((packedData.d1 >> 24) & 0xFF) / 255.0;
-
-    return Voxel(isEmpty, vec3(r, g, b), to_inf(e));
+uint get_voxel(uvec3 pos) {
+    return voxels[(pos.z * sceneSize.y + pos.y) * sceneSize.x + pos.x];
 }
 
 //============================================================================//
@@ -213,14 +190,14 @@ Hit traverse(Ray ray) {
             }
         }
 
-        if (!in_scene_bounds(pos)) return EMPTY_HIT;
+        if (!in_scene_bounds(pos)) return Hit(0, ivec3(0), 0);
 
-        Voxel voxel = get_voxel(uvec3(pos));
+        uint materialID = get_voxel(uvec3(pos));
 
-        if (!voxel.isEmpty) {
+        if (materialID != 0) {
             float dist = length((tMax - tDelta) * vec3(mask)) + d;
             ivec3 norm = ivec3(mask) * -step;
-            return Hit(dist, norm, voxel);
+            return Hit(dist, norm, materialID);
         }
     }
 }
@@ -230,14 +207,15 @@ vec3 get_color(Ray ray) {
 
     for (int i = 0; i < maxRayDepth; i++) {
         Hit hit = traverse(ray);
+        Material material = materials[hit.material];
 
         if (hit.norm == ivec3(0))
-            return bgColor.rgb * to_inf(bgColor.a) * throughput;
+            return bg.color * bg.properties.x * throughput;
 
-        if (hit.voxel.emmision > 0)
-            return hit.voxel.color * hit.voxel.emmision * throughput;
+        if (material.properties.x > 0)
+            return material.color * material.properties.x * throughput;
 
-        throughput *= hit.voxel.color;
+        throughput *= material.color;
 
         ray = create_ray(
             ray.origin + ray.dir * hit.dist + hit.norm * EPSILON,

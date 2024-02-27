@@ -29,6 +29,13 @@ __attribute__((used)) static void dump_stack(lua_State* L) {
     }
 }
 
+static void return_error(lua_State* L, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    lua_pushvfstring(L, fmt, args);
+    lua_error(L);
+}
+
 static void get_table(lua_State* L, const char* name) {
     lua_pushstring(L, name);
     lua_gettable(L, -2);
@@ -40,6 +47,12 @@ static void get_table(lua_State* L, const char* name) {
     }
 }
 
+static void get_table_error(lua_State* L, const char* name) {
+    lua_pushstring(L, name);
+    lua_gettable(L, -2);
+    if (!lua_istable(L, -1)) return_error(L, "table \"%s\" not found", name);
+}
+
 static float get_number(lua_State* L, const char* name) {
     lua_pushstring(L, name);
     lua_gettable(L, -2);
@@ -48,6 +61,15 @@ static float get_number(lua_State* L, const char* name) {
         lua_pop(L, 1);
         return 0;
     }
+    float value = lua_tonumber(L, -1);
+    lua_pop(L, 1);
+    return value;
+}
+
+static float get_number_error(lua_State* L, const char* name) {
+    lua_pushstring(L, name);
+    lua_gettable(L, -2);
+    if (!lua_isnumber(L, -1)) return_error(L, "number \"%s\" not found", name);
     float value = lua_tonumber(L, -1);
     lua_pop(L, 1);
     return value;
@@ -77,35 +99,56 @@ static bool get_function(lua_State* L, const char* name) {
     return true;
 }
 
-static void return_error(lua_State* L, const char* message) {
-    lua_pushstring(L, message);
-    lua_error(L);
-}
-
-static int scene_set_voxel(lua_State* L) {
+static int l_scene_register_material(lua_State* L) {
     lua_getuservalue(L, 1);
     Scene* scene = lua_touserdata(L, -1);
     lua_pop(L, 1);
 
     if (!scene) return_error(L, "invalid scene");
 
-    if (!lua_isnumber(L, 2) || !lua_isnumber(L, 3) || !lua_isnumber(L, 4))
-        return_error(L, "invalid position");
+    if (!lua_istable(L, 2)) return_error(L, "invalid material");
+
+    get_table_error(L, "color");
+    vec3 color = (vec3){
+        .r = get_number_error(L, "r"),
+        .g = get_number_error(L, "g"),
+        .b = get_number_error(L, "b"),
+    };
+    lua_pop(L, 1); // color
+
+    float emission = get_number_error(L, "emission");
+
+    lua_pushinteger(
+        L,
+        scene_register_material(
+            scene,
+            (Material){.color = color, .properties.x = emission}
+        )
+    );
+
+    return 1;
+}
+
+static int l_scene_set(lua_State* L) {
+    lua_getuservalue(L, 1);
+    Scene* scene = lua_touserdata(L, -1);
+    lua_pop(L, 1);
+
+    if (!scene) return_error(L, "invalid scene");
+
+    if (!lua_isinteger(L, 3)) return_error(L, "invalid material ID");
+    uint materialID = lua_tointeger(L, 3);
+    lua_pop(L, 1);
+
+    if (!lua_istable(L, 2)) return_error(L, "invalid position");
 
     uvec3 pos = (uvec3){
-        .x = (int)lua_tonumber(L, 2),
-        .y = (int)lua_tonumber(L, 3),
-        .z = (int)lua_tonumber(L, 4),
+        .x = (int)get_number_error(L, "x"),
+        .y = (int)get_number_error(L, "y"),
+        .z = (int)get_number_error(L, "z"),
     };
 
-    if (!lua_istable(L, 5)) return_error(L, "invalid voxel");
-
-    float r = get_number(L, "r");
-    float g = get_number(L, "g");
-    float b = get_number(L, "b");
-    float emission = get_number(L, "emission");
-
-    scene_set(scene, pos, voxel(r, g, b, emission));
+    scene_set(scene, pos, materialID);
 
     return 0;
 }
@@ -130,8 +173,12 @@ static void make_scene_table(lua_State* L, Scene* scene) {
 
     lua_settable(L, -3); // size
 
+    lua_pushstring(L, "register_material");
+    lua_pushcfunction(L, l_scene_register_material);
+    lua_settable(L, -3); // register_material
+
     lua_pushstring(L, "set");
-    lua_pushcfunction(L, scene_set_voxel);
+    lua_pushcfunction(L, l_scene_set);
     lua_settable(L, -3); // set
 
     lua_pushlightuserdata(L, scene);
@@ -153,7 +200,7 @@ void read_config(
 
     if (luaL_dofile(L, fileName)) {
         ERROR(
-            "failed to run config file %s: %s\n",
+            "failed to run config file \"%s\": %s\n",
             fileName,
             lua_tostring(L, -1)
         );
@@ -185,23 +232,28 @@ void read_config(
     };
     lua_pop(L, 1); // size
 
-    get_table(L, "bg_color");
+    get_table(L, "bg");
+    get_table(L, "color");
     vec3 bg_color = (vec3){
-        .x = get_number(L, "r"),
-        .y = get_number(L, "g"),
-        .z = get_number(L, "b"),
+        .r = get_number(L, "r"),
+        .g = get_number(L, "g"),
+        .b = get_number(L, "b"),
     };
-    lua_pop(L, 1); // bg_color
+    lua_pop(L, 1); // color
+    float bg_emission = get_number(L, "emission");
+    lua_pop(L, 1); // bg
 
-    float bg_intensity = get_number(L, "bg_intensity");
-
-    *scene = scene_create(device, size, bg_color, bg_intensity);
+    *scene = scene_create(
+        device,
+        size,
+        (Material){.color = bg_color, .properties.x = bg_emission}
+    );
 
     if (get_function(L, "data")) {
-        INFO("running scene data function\n");
+        INFO("running lua scene data function\n");
         make_scene_table(L, *scene);
         if (lua_pcall(L, 1, 0, 0)) {
-            WARN("error in scene data function: %s\n", lua_tostring(L, -1));
+            WARN("error in lua scene data function: %s\n", lua_tostring(L, -1));
             lua_pop(L, 1);
         }
     }

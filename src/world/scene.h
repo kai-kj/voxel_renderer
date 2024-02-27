@@ -2,8 +2,8 @@
 
 #include "microcompute/microcompute.h"
 
+#include "material.h"
 #include "vec_types/vec_types.h"
-#include "voxel.h"
 
 typedef struct Scene Scene;
 
@@ -12,16 +12,10 @@ typedef struct Scene Scene;
  *
  * @param device The device to create the scene on
  * @param size The size of the scene
- * @param bgColor The background color of the scene
- * @param bgEmission The intensity/brightness of the background color
+ * @param bg The background material
  * @return A new scene
  */
-Scene* scene_create(
-    mc_Device_t* device,
-    uvec3 size,
-    vec3 bgColor,
-    float bgEmission
-);
+Scene* scene_create(mc_Device_t* device, uvec3 size, Material bg);
 
 /**
  * @brief Destroy a scene
@@ -36,6 +30,13 @@ void scene_destroy(Scene* scene);
  * @param scene The scene to update
  */
 void scene_update_data(Scene* scene);
+
+/**
+ * @brief Upload the scene materials to the GPU
+ *
+ * @param scene The scene to update
+ */
+void scene_update_materials(Scene* scene);
 
 /**
  * @brief Upload the scene voxels to the GPU
@@ -53,13 +54,21 @@ void scene_update_voxels(Scene* scene);
 uvec3 scene_get_size(Scene* scene);
 
 /**
+ * @brief Create a new material in a scene
+ * @param scene The scene to create the material in
+ * @param material The material to create
+ * @return The ID of the created material
+ */
+uint scene_register_material(Scene* scene, Material material);
+
+/**
  * @brief Set a voxel in a scene
  *
  * @param scene The scene to set the voxel in
  * @param pos The position of the voxel
- * @param voxel The new voxel
+ * @param materialID The material ID of the voxel
  */
-void scene_set(Scene* scene, uvec3 pos, Voxel voxel);
+void scene_set(Scene* scene, uvec3 pos, uint materialID);
 
 /**
  * @brief Get the data buffer of a scene
@@ -68,6 +77,14 @@ void scene_set(Scene* scene, uvec3 pos, Voxel voxel);
  * @return The data buffer
  */
 mc_Buffer_t* scene_get_data_buff(Scene* scene);
+
+/**
+ * @brief Get the material buffer of a scene
+ *
+ * @param scene The scene to get the material buffer of
+ * @return The material buffer
+ */
+mc_Buffer_t* scene_get_material_buff(Scene* scene);
 
 /**
  * @brief Get the voxel buffer of a scene

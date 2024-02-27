@@ -28,6 +28,9 @@ unsigned char* render(
     Camera* camera
 ) {
     INFO("preparing render with settings:");
+    INFO("- device: \"%s\"", mc_device_get_name(dev));
+    INFO("- renderer shader: \"%s\"", rendererShaderPath);
+    INFO("- output shader: \"%s\"", outputShaderPath);
     INFO("- work group size: %dx%d", WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y);
     INFO("- image size: %dx%d", settings.imageSize.x, settings.imageSize.y);
     INFO("- iters: %d", settings.iters);
@@ -90,7 +93,7 @@ unsigned char* render(
         info.seed = (float)rand() / (float)RAND_MAX;
 
         float progress = (float)(i + 1) / (float)settings.iters * 100.0f;
-        INFO("- %d/%d (%.2f%%):", info.iter, settings.iters, progress);
+        INFO("- %d/%d (%.2f%%)", info.iter, settings.iters, progress);
 
         mc_buffer_write(infoBuff, 0, sizeof info, &info);
 
@@ -102,6 +105,7 @@ unsigned char* render(
             infoBuff,
             fImageBuff,
             scene_get_data_buff(scene),
+            scene_get_material_buff(scene),
             scene_get_voxel_buff(scene),
             camera_get_data_buff(camera)
         );
