@@ -6,6 +6,18 @@
 
 #define PI 3.14159265358979323846
 
+typedef struct {
+    vec3 pos;
+    vec3 dir;
+    vec2 sensorSize;
+    float focalLength;
+} CameraData;
+
+struct Camera {
+    CameraData data;
+    mc_Buffer_t* dataBuff;
+};
+
 float deg2rad(float deg) {
     return deg * PI / 180;
 }
@@ -56,4 +68,8 @@ void camera_get(Camera* camera, vec3* pos, vec3* dir) {
 void camera_set(Camera* camera, vec3 pos, vec3 dir) {
     camera->data.pos = pos;
     camera->data.dir = (vec3){deg2rad(dir.x), deg2rad(dir.y), deg2rad(dir.z)};
+}
+
+mc_Buffer_t* camera_get_data_buff(Camera* camera) {
+    return camera->dataBuff;
 }

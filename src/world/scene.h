@@ -5,23 +5,7 @@
 #include "vec_types/vec_types.h"
 #include "voxel.h"
 
-/**
- * @brief The data for a scene
- */
-typedef struct {
-    uvec3 size;   ///< The size of the scene
-    vec4 bgColor; ///< The background color and emission of the scene
-} SceneData;
-
-/**
- * @brief A scene
- */
-typedef struct {
-    SceneData data;         ///< The data for the scene
-    Voxel* voxels;          ///< The voxels in the scene
-    mc_Buffer_t* dataBuff;  ///< The GPU buffer for the scene data
-    mc_Buffer_t* voxelBuff; ///< The GPU buffer for the scene voxels
-} Scene;
+typedef struct Scene Scene;
 
 /**
  * @brief Create a new scene
@@ -61,6 +45,14 @@ void scene_update_data(Scene* scene);
 void scene_update_voxels(Scene* scene);
 
 /**
+ * @brief Get the size of a scene
+ *
+ * @param scene The scene to get the size of
+ * @return The size of the scene
+ */
+uvec3 scene_get_size(Scene* scene);
+
+/**
  * @brief Set a voxel in a scene
  *
  * @param scene The scene to set the voxel in
@@ -68,3 +60,19 @@ void scene_update_voxels(Scene* scene);
  * @param voxel The new voxel
  */
 void scene_set(Scene* scene, uvec3 pos, Voxel voxel);
+
+/**
+ * @brief Get the data buffer of a scene
+ *
+ * @param scene The scene to get the data buffer of
+ * @return The data buffer
+ */
+mc_Buffer_t* scene_get_data_buff(Scene* scene);
+
+/**
+ * @brief Get the voxel buffer of a scene
+ *
+ * @param scene The scene to get the voxel buffer of
+ * @return The voxel buffer
+ */
+mc_Buffer_t* scene_get_voxel_buff(Scene* scene);

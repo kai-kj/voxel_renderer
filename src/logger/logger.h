@@ -12,7 +12,14 @@
  * @param ... The arguments for the message
  */
 #define LOG(lvl, fmt, ...)                                                     \
-    new_log(lvl, "vr", NULL, __FILE__, __LINE__, fmt __VA_OPT__(, ) __VA_ARGS__)
+    new_log(                                                                   \
+        lvl,                                                                   \
+        "app",                                                                 \
+        NULL,                                                                  \
+        __FILE__,                                                              \
+        __LINE__,                                                              \
+        fmt __VA_OPT__(, ) __VA_ARGS__                                         \
+    )
 
 /**
  * @brief Log a message at the debug level

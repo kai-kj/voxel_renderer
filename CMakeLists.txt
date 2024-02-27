@@ -26,7 +26,7 @@ file(GLOB_RECURSE C_FILES src/*.c)
 add_executable(voxel_renderer ${C_FILES} renderer.spv output.spv)
 
 target_include_directories(voxel_renderer PRIVATE src include)
-target_link_libraries(voxel_renderer PRIVATE m vulkan)
+target_link_libraries(voxel_renderer PRIVATE m vulkan lua5.3)
 target_compile_options(
     voxel_renderer
     PRIVATE
@@ -37,6 +37,7 @@ target_compile_options(
     -pedantic
     -Wno-unused-parameter
     -Wno-missing-braces
+    -Wno-error=unused-function
     -ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=.
     -DWORKGROUP_SIZE_X=${WORKGROUP_SIZE_X}
     -DWORKGROUP_SIZE_Y=${WORKGROUP_SIZE_Y}

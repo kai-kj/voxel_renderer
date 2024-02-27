@@ -5,11 +5,23 @@
 #include "logger/logger.h"
 #include "scene.h"
 
-static uint32_t voxels_count(Scene* scene) {
+typedef struct {
+    uvec3 size;
+    vec4 bgColor;
+} SceneData;
+
+struct Scene {
+    SceneData data;
+    Voxel* voxels;
+    mc_Buffer_t* dataBuff;
+    mc_Buffer_t* voxelBuff;
+};
+
+static uint voxels_count(Scene* scene) {
     return scene->data.size.x * scene->data.size.y * scene->data.size.z;
 }
 
-static uint32_t voxels_size(Scene* scene) {
+static uint voxels_size(Scene* scene) {
     return sizeof *scene->voxels * voxels_count(scene);
 }
 
@@ -18,7 +30,7 @@ static bool coord_in_bounds(Scene* scene, uvec3 pos) {
         && pos.z < scene->data.size.z;
 }
 
-static uint32_t coord_to_index(Scene* scene, uvec3 pos) {
+static uint coord_to_index(Scene* scene, uvec3 pos) {
     return pos.z * scene->data.size.x * scene->data.size.y
          + pos.y * scene->data.size.x + pos.x;
 }
@@ -40,7 +52,7 @@ Scene* scene_create(
     };
 
     scene->voxels = malloc(voxels_size(scene));
-    for (uint32_t i = 0; i < voxels_count(scene); i++)
+    for (uint i = 0; i < voxels_count(scene); i++)
         scene->voxels[i] = voxel_empty();
 
     scene->dataBuff
@@ -70,7 +82,19 @@ void scene_update_voxels(Scene* scene) {
     mc_buffer_write(scene->voxelBuff, 0, voxels_size(scene), scene->voxels);
 }
 
+uvec3 scene_get_size(Scene* scene) {
+    return scene->data.size;
+}
+
 void scene_set(Scene* scene, uvec3 pos, Voxel voxel) {
     if (!coord_in_bounds(scene, pos)) return;
     scene->voxels[coord_to_index(scene, pos)] = voxel;
+}
+
+mc_Buffer_t* scene_get_data_buff(Scene* scene) {
+    return scene->dataBuff;
+}
+
+mc_Buffer_t* scene_get_voxel_buff(Scene* scene) {
+    return scene->voxelBuff;
 }

@@ -13,165 +13,131 @@
 #define WORKGROUP_SIZE_Y 1
 #endif
 
-Renderer* renderer_create(
+typedef struct {
+    uint maxRayDepth;
+    uint iter;
+    float seed;
+} RenderInfo;
+
+unsigned char* render(
     mc_Device_t* dev,
-    uvec2 imageSize,
     char* rendererShaderPath,
     char* outputShaderPath,
-    uint maxRayDepth
+    RenderSettings settings,
+    Scene* scene,
+    Camera* camera
 ) {
-    INFO("creating renderer");
+    INFO("preparing render with settings:");
+    INFO("- work group size: %dx%d", WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y);
+    INFO("- image size: %dx%d", settings.imageSize.x, settings.imageSize.y);
+    INFO("- iters: %d", settings.iters);
+    INFO("- max ray depth: %d", settings.maxRayDepth);
 
-    uint32_t maxWGSizeTotal = mc_device_get_max_workgroup_size_total(dev);
-    uint32_t* maxWGSizeShape = mc_device_get_max_workgroup_size_shape(dev);
+    uint maxWGSizeTotal = mc_device_get_max_workgroup_size_total(dev);
+    uint* maxWGSizeShape = mc_device_get_max_workgroup_size_shape(dev);
 
     if (WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y > maxWGSizeTotal) {
-        ERROR(
-            "total workgroup size (%d) too large, max: %d",
-            WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y,
-            maxWGSizeTotal
-        );
+        ERROR("total workgroup size  too large, max: %d", maxWGSizeTotal);
         return NULL;
     }
 
     if (WORKGROUP_SIZE_X > maxWGSizeShape[0]) {
-        ERROR(
-            "workgroup size x (%d) too large, max: %d",
-            WORKGROUP_SIZE_X,
-            maxWGSizeShape[0]
-        );
+        ERROR("workgroup size x too large, max: %d", maxWGSizeShape[0]);
         return NULL;
     }
 
     if (WORKGROUP_SIZE_Y > maxWGSizeShape[1]) {
-        ERROR(
-            "workgroup size y (%d) too large, max: %d",
-            WORKGROUP_SIZE_Y,
-            maxWGSizeShape[1]
-        );
+        ERROR("workgroup size y too large, max: %d", maxWGSizeShape[1]);
         return NULL;
     }
 
-    Renderer* renderer = malloc(sizeof *renderer);
-    *renderer = (Renderer){
-        .info = {maxRayDepth, 0, 0},
-        .renderProgram = mc_program_create(dev, rendererShaderPath, "main"),
-        .outputProgram = mc_program_create(dev, outputShaderPath, "main"),
-        .imageSize = imageSize,
-        .image = malloc(imageSize.x * imageSize.y * 4),
-    };
+    mc_Program_t* renderProgram
+        = mc_program_create(dev, rendererShaderPath, "main");
 
-    renderer->infoBuff = mc_buffer_create(dev, sizeof renderer->info);
-    renderer->fImageBuff
-        = mc_buffer_create(dev, imageSize.x * imageSize.y * sizeof(vec3));
-    renderer->iImageBuff
-        = mc_buffer_create(dev, imageSize.x * imageSize.y * sizeof(int));
-
-    bool failed = false;
-    if (!renderer->renderProgram) failed = true;
-    if (!renderer->outputProgram) failed = true;
-
-    return !failed ? renderer : NULL;
-}
-
-void renderer_destroy(Renderer* renderer) {
-    INFO("destroying renderer");
-
-    if (renderer->infoBuff) {
-        mc_buffer_destroy(renderer->infoBuff);
-        renderer->infoBuff = NULL;
+    if (!renderProgram) {
+        ERROR("failed to create render program");
+        return NULL;
     }
 
-    if (renderer->fImageBuff) {
-        mc_buffer_destroy(renderer->fImageBuff);
-        renderer->fImageBuff = NULL;
+    mc_Program_t* outputProgram
+        = mc_program_create(dev, outputShaderPath, "main");
+
+    if (!outputProgram) {
+        ERROR("failed to create output program");
+        return NULL;
     }
 
-    if (renderer->iImageBuff) {
-        mc_buffer_destroy(renderer->iImageBuff);
-        renderer->iImageBuff = NULL;
-    }
+    mc_Buffer_t* fImageBuff = mc_buffer_create(
+        dev,
+        settings.imageSize.x * settings.imageSize.y * sizeof(vec3)
+    );
 
-    if (renderer->image) {
-        free(renderer->image);
-        renderer->image = NULL;
-    }
+    mc_Buffer_t* iImageBuff = mc_buffer_create(
+        dev,
+        settings.imageSize.x * settings.imageSize.y * sizeof(int)
+    );
 
-    if (renderer->renderProgram) {
-        mc_program_destroy(renderer->renderProgram);
-        renderer->renderProgram = NULL;
-    }
+    RenderInfo info = {settings.maxRayDepth, 0, 0};
+    mc_Buffer_t* infoBuff = mc_buffer_create(dev, sizeof(RenderInfo));
 
-    if (renderer->outputProgram) {
-        mc_program_destroy(renderer->outputProgram);
-        renderer->outputProgram = NULL;
-    }
-
-    free(renderer);
-}
-
-char* renderer_render(
-    Renderer* renderer,
-    Scene* scene,
-    Camera* camera,
-    uint32_t iterations
-) {
-    INFO("rendering %d iteration(s)", iterations);
-    INFO("- WORK_GROUP_SIZE_X: %d", WORKGROUP_SIZE_X);
-    INFO("- WORK_GROUP_SIZE_Y: %d", WORKGROUP_SIZE_Y);
+    INFO("starting render (%d iters):", settings.iters);
 
     double start = mc_get_time();
     srand((uint)start);
 
-    for (uint32_t i = 0; i < iterations; i++) {
-        renderer->info.iteration = i + 1;
-        renderer->info.seed = (float)rand() / (float)RAND_MAX;
+    for (uint i = 0; i < settings.iters; i++) {
+        info.iter = i + 1;
+        info.seed = (float)rand() / (float)RAND_MAX;
 
-        INFO(
-            "rendering iteration %d/%d (%f%%)",
-            i + 1,
-            iterations,
-            (i + 1) / (float)iterations * 100
-        );
+        float progress = (float)(i + 1) / (float)settings.iters * 100.0f;
+        INFO("- %d/%d (%.2f%%):", info.iter, settings.iters, progress);
 
-        mc_buffer_write(
-            renderer->infoBuff,
-            0,
-            sizeof renderer->info,
-            &renderer->info
-        );
+        mc_buffer_write(infoBuff, 0, sizeof info, &info);
 
         mc_program_run(
-            renderer->renderProgram,
-            renderer->imageSize.x / WORKGROUP_SIZE_X,
-            renderer->imageSize.y / WORKGROUP_SIZE_Y,
+            renderProgram,
+            settings.imageSize.x / WORKGROUP_SIZE_X,
+            settings.imageSize.y / WORKGROUP_SIZE_Y,
             1,
-            renderer->infoBuff,
-            renderer->fImageBuff,
-            scene->dataBuff,
-            scene->voxelBuff,
-            camera->dataBuff
+            infoBuff,
+            fImageBuff,
+            scene_get_data_buff(scene),
+            scene_get_voxel_buff(scene),
+            camera_get_data_buff(camera)
         );
     }
 
     double elapsed = mc_get_time() - start;
-    INFO("rendered %d iterations in %f seconds", iterations, elapsed);
+    double rate = elapsed / settings.iters;
+    INFO("finished render in %.02fs (%.02f ms/frame)", elapsed, rate * 1000.0);
+
+    INFO("convert image into bytes");
+
+    unsigned char* image
+        = malloc(settings.imageSize.x * settings.imageSize.y * 4);
 
     mc_program_run(
-        renderer->outputProgram,
-        renderer->imageSize.x / WORKGROUP_SIZE_X,
-        renderer->imageSize.y / WORKGROUP_SIZE_Y,
+        outputProgram,
+        settings.imageSize.x / WORKGROUP_SIZE_X,
+        settings.imageSize.y / WORKGROUP_SIZE_Y,
         1,
-        renderer->fImageBuff,
-        renderer->iImageBuff
+        fImageBuff,
+        iImageBuff
     );
 
     mc_buffer_read(
-        renderer->iImageBuff,
+        iImageBuff,
         0,
-        renderer->imageSize.x * renderer->imageSize.y * 4,
-        renderer->image
+        settings.imageSize.x * settings.imageSize.y * 4,
+        image
     );
 
-    return renderer->image;
+    INFO("cleaning up render");
+    mc_program_destroy(renderProgram);
+    mc_program_destroy(outputProgram);
+    mc_buffer_destroy(infoBuff);
+    mc_buffer_destroy(fImageBuff);
+    mc_buffer_destroy(iImageBuff);
+
+    return image;
 }
