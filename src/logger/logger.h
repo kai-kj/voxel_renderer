@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "microcompute/microcompute.h"
+#include "microcompute/mc.h"
 
 /**
  * @brief Log a message

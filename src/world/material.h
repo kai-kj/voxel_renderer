@@ -1,6 +1,7 @@
 #pragma once
 
-#include "vec_types/vec_types.h"
+#define MC_VEC_SHORT_NAMES
+#include "microcompute/mc_vec.h"
 
 typedef struct {
     vec3 color;

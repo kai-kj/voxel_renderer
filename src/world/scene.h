@@ -1,9 +1,10 @@
 #pragma once
 
-#include "microcompute/microcompute.h"
+#define MC_VEC_SHORT_NAMES
+#include "microcompute/mc.h"
+#include "microcompute/mc_vec.h"
 
 #include "material.h"
-#include "vec_types/vec_types.h"
 
 typedef struct Scene Scene;
 

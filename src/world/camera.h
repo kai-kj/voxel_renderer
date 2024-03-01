@@ -1,7 +1,8 @@
 #pragma once
 
-#include "microcompute/microcompute.h"
-#include "vec_types/vec_types.h"
+#define MC_VEC_SHORT_NAMES
+#include "microcompute/mc.h"
+#include "microcompute/mc_vec.h"
 
 typedef struct Camera Camera;
 
