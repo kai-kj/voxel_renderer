@@ -1,13 +1,5 @@
 #version 430
 
-#ifndef WORKGROUP_SIZE_X
-#define WORKGROUP_SIZE_X 1
-#endif
-
-#ifndef WORKGROUP_SIZE_Y
-#define WORKGROUP_SIZE_Y 1
-#endif
-
 layout(local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
 
 ivec2 glPos = ivec2(gl_GlobalInvocationID.xy);

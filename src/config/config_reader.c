@@ -220,6 +220,39 @@ void read_config(
 
     get_table(L, "settings", warn_error);
 
+    if (get_function(L, "renderer_code", warn_error)) {
+        INFO("running renderer code gen function\n");
+        if (lua_pcall(L, 0, 1, 0)) {
+            WARN("error in lua function: %s\n", lua_tostring(L, -1));
+            lua_pop(L, 1);
+        } else if (!lua_isstring(L, -1)) {
+            WARN("invalid renderer code, defaulting to empty string\n");
+            info->rendererCode = strdup("");
+        } else {
+            info->rendererCode = strdup(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+    }
+
+    if (get_function(L, "output_code", warn_error)) {
+        INFO("running output code gen function\n");
+        if (lua_pcall(L, 0, 1, 0)) {
+            WARN("error in lua function: %s\n", lua_tostring(L, -1));
+            lua_pop(L, 1);
+        } else if (!lua_isstring(L, -1)) {
+            WARN("invalid output code, defaulting to empty string\n");
+            info->outputCode = strdup("");
+        } else {
+            info->outputCode = strdup(lua_tostring(L, -1));
+            lua_pop(L, 1);
+        }
+    }
+
+    get_table(L, "workgroup_size", warn_error);
+    info->wgSize.x = get_number_i(L, 1, warn_error);
+    info->wgSize.y = get_number_i(L, 2, warn_error);
+    lua_pop(L, 1); // workgroup_size
+
     get_table(L, "image_size", warn_error);
     info->imageSize.x = get_number_i(L, 1, warn_error);
     info->imageSize.y = get_number_i(L, 2, warn_error);
@@ -257,7 +290,7 @@ void read_config(
         INFO("running lua scene data function\n");
         make_scene_table(L, *scene);
         if (lua_pcall(L, 1, 0, 0)) {
-            WARN("error in lua scene data function: %s\n", lua_tostring(L, -1));
+            WARN("error in lua function: %s\n", lua_tostring(L, -1));
             lua_pop(L, 1);
         }
     }

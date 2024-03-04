@@ -4,9 +4,6 @@
 #include "logger/logger.h"
 #include "stb/stb_image_write.h"
 
-#define RENDERER_PATH "renderer.spv"
-#define OUTPUT_PATH "output.spv"
-
 int main(int argc, char** argv) {
     set_log_level(MC_LOG_LEVEL_DEBUG);
 
@@ -35,8 +32,7 @@ int main(int argc, char** argv) {
     scene_update_voxels(scene);
     camera_update(camera);
 
-    unsigned char* image
-        = render(dev, RENDERER_PATH, OUTPUT_PATH, settings, scene, camera);
+    unsigned char* image = render(dev, settings, scene, camera);
 
     INFO("writing image to \"%s\"", outputFile);
     stbi_write_bmp(

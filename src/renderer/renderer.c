@@ -4,14 +4,7 @@
 
 #include "logger/logger.h"
 #include "renderer.h"
-
-#ifndef WORKGROUP_SIZE_X
-#define WORKGROUP_SIZE_X 1
-#endif
-
-#ifndef WORKGROUP_SIZE_Y
-#define WORKGROUP_SIZE_Y 1
-#endif
+#include "shader_code.h"
 
 typedef struct {
     uint maxRayDepth;
@@ -21,17 +14,13 @@ typedef struct {
 
 unsigned char* render(
     mc_Device_t* dev,
-    char* rendererShaderPath,
-    char* outputShaderPath,
     RenderSettings settings,
     Scene* scene,
     Camera* camera
 ) {
     INFO("preparing render with settings:");
     INFO("- device: \"%s\"", mc_device_get_name(dev));
-    INFO("- renderer shader: \"%s\"", rendererShaderPath);
-    INFO("- output shader: \"%s\"", outputShaderPath);
-    INFO("- work group size: %dx%d", WORKGROUP_SIZE_X, WORKGROUP_SIZE_Y);
+    INFO("- work group size: %dx%d", settings.wgSize.x, settings.wgSize.y);
     INFO("- image size: %dx%d", settings.imageSize.x, settings.imageSize.y);
     INFO("- iters: %d", settings.iters);
     INFO("- max ray depth: %d", settings.maxRayDepth);
@@ -39,31 +28,55 @@ unsigned char* render(
     uint maxWGSizeTotal = mc_device_get_max_workgroup_size_total(dev);
     uint* maxWGSizeShape = mc_device_get_max_workgroup_size_shape(dev);
 
-    if (WORKGROUP_SIZE_X * WORKGROUP_SIZE_Y > maxWGSizeTotal) {
+    if (settings.wgSize.x * settings.wgSize.y > maxWGSizeTotal) {
         ERROR("total workgroup size  too large, max: %d", maxWGSizeTotal);
         return NULL;
     }
 
-    if (WORKGROUP_SIZE_X > maxWGSizeShape[0]) {
+    if (settings.wgSize.x > maxWGSizeShape[0]) {
         ERROR("workgroup size x too large, max: %d", maxWGSizeShape[0]);
         return NULL;
     }
 
-    if (WORKGROUP_SIZE_Y > maxWGSizeShape[1]) {
+    if (settings.wgSize.y > maxWGSizeShape[1]) {
         ERROR("workgroup size y too large, max: %d", maxWGSizeShape[1]);
         return NULL;
     }
 
-    mc_Program_t* renderProgram
-        = mc_program_create(dev, rendererShaderPath, "main");
+    ShaderCode* renderCode = shader_code_create(settings.rendererCode);
+    if (!renderCode) {
+        ERROR("failed to create render code");
+        return NULL;
+    }
+
+    mc_Program_t* renderProgram = mc_program_create(
+        dev,
+        shader_code_get_size(renderCode),
+        shader_code_get_bytecode(renderCode),
+        "main"
+    );
+
+    shader_code_destroy(renderCode);
 
     if (!renderProgram) {
         ERROR("failed to create render program");
         return NULL;
     }
 
-    mc_Program_t* outputProgram
-        = mc_program_create(dev, outputShaderPath, "main");
+    ShaderCode* outputCode = shader_code_create(settings.outputCode);
+    if (!outputCode) {
+        ERROR("failed to create output code");
+        return NULL;
+    }
+
+    mc_Program_t* outputProgram = mc_program_create(
+        dev,
+        shader_code_get_size(outputCode),
+        shader_code_get_bytecode(outputCode),
+        "main"
+    );
+
+    shader_code_destroy(outputCode);
 
     if (!outputProgram) {
         ERROR("failed to create output program");
@@ -99,8 +112,8 @@ unsigned char* render(
 
         mc_program_run(
             renderProgram,
-            settings.imageSize.x / WORKGROUP_SIZE_X,
-            settings.imageSize.y / WORKGROUP_SIZE_Y,
+            settings.imageSize.x / settings.wgSize.x,
+            settings.imageSize.y / settings.wgSize.y,
             1,
             infoBuff,
             fImageBuff,
@@ -122,8 +135,8 @@ unsigned char* render(
 
     mc_program_run(
         outputProgram,
-        settings.imageSize.x / WORKGROUP_SIZE_X,
-        settings.imageSize.y / WORKGROUP_SIZE_Y,
+        settings.imageSize.x / settings.wgSize.x,
+        settings.imageSize.y / settings.wgSize.y,
         1,
         fImageBuff,
         iImageBuff

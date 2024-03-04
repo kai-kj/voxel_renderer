@@ -1,6 +1,36 @@
+local workgroup_size = { 16, 16 }
+
+local run_command = function(command)
+    local f = io.popen(command)
+    if f == nil then error("Failed to run command: " .. command) end
+    local output = f:read("*a")
+    local status = { f:close() }
+    return output, status[3]
+end
+
+local compile_shader = function(path, workgroup_size)
+    local defs = "-DWORKGROUP_SIZE_X=" .. workgroup_size[1] .. " -DWORKGROUP_SIZE_Y=" .. workgroup_size[2]
+    local output, status = run_command("glslc -S -O -fshader-stage=comp " .. defs .. " " .. path .. " -o -")
+    if status ~= 0 then
+        print(output)
+        error("Failed to compile shader " .. path .. " (see above)")
+    end
+    return output
+end
+
 return {
     output_file = "output.bmp",
     settings = {
+        renderer_code = function()
+            local code = compile_shader("../shader/renderer.glsl", workgroup_size)
+            return code
+        end,
+        output_code = function()
+            local code = compile_shader("../shader/output.glsl", workgroup_size)
+            print(code)
+            return code
+        end,
+        workgroup_size = workgroup_size,
         image_size = { 1920, 1080 },
         iterations = 100,
         max_depth = 5,
