@@ -2,7 +2,7 @@
 
 #include "renderer/renderer.h"
 
-void read_config(
+bool read_config(
     char* fileName,
     mc_Device_t* device,
     char** outputFile,

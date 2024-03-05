@@ -7,107 +7,17 @@
 #include <lua5.3/lualib.h>
 
 #include "config_reader.h"
+#include "generic_parser.h"
 #include "logger/logger.h"
 
-typedef void (*error_fn)(lua_State*, const char*, ...);
+#define LUA_SET_FIELD(L, key, type, value)                                     \
+    lua_pushstring(L, key);                                                    \
+    lua_push##type(L, value);                                                  \
+    lua_settable(L, -3)
 
-__attribute__((used)) static void dump_stack(lua_State* L) {
-    int top = lua_gettop(L);
-    printf("stack (%d):\n", top);
-
-    for (int i = 1; i <= top; i++) {
-        printf("  %03d | %-10s | ", i, luaL_typename(L, i));
-        switch (lua_type(L, i)) {
-            case LUA_TNUMBER: printf("%f\n", lua_tonumber(L, i)); break;
-            case LUA_TSTRING: printf("%s\n", lua_tostring(L, i)); break;
-            case LUA_TBOOLEAN:
-                printf("%s\n", lua_toboolean(L, i) ? "true" : "false");
-                break;
-            case LUA_TNIL: printf("%s\n", "nil"); break;
-            default: printf("%p\n", lua_topointer(L, i)); break;
-        }
-    }
-}
-
-static void warn_error(lua_State* L, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    uint len = vsnprintf(NULL, 0, fmt, args);
-
-    va_start(args, fmt);
-    char* message = malloc(len + 1);
-    vsnprintf(message, len + 1, fmt, args);
-    va_end(args);
-
-    WARN("lua: %s\n", message);
-    free(message);
-}
-
-static void raise_error(lua_State* L, const char* fmt, ...) {
-    va_list args;
-    va_start(args, fmt);
-    lua_pushvfstring(L, fmt, args);
+static void raise_error(lua_State* L, const char* fmt) {
+    lua_pushstring(L, fmt);
     lua_error(L);
-}
-
-static void get_table(lua_State* L, const char* name, error_fn on_error) {
-    lua_pushstring(L, name);
-    lua_gettable(L, -2);
-    if (!lua_istable(L, -1)) {
-        on_error(L, "table \"%s\" not found", name);
-        lua_pop(L, 1);
-        lua_createtable(L, 0, 0);
-        return;
-    }
-}
-
-static float get_number(lua_State* L, const char* name, error_fn on_error) {
-    lua_pushstring(L, name);
-    lua_gettable(L, -2);
-    if (!lua_isnumber(L, -1)) {
-        on_error(L, "number \"%s\" not found, defaulting to 0", name);
-        lua_pop(L, 1);
-        return 0;
-    }
-    float value = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-    return value;
-}
-
-static float get_number_i(lua_State* L, int i, error_fn on_error) {
-    lua_pushnumber(L, i);
-    lua_gettable(L, -2);
-    if (!lua_isnumber(L, -1)) {
-        on_error(L, "number [%s] not found, defaulting to %g", i, 0.0);
-        lua_pop(L, 1);
-        return 0;
-    }
-    float value = lua_tonumber(L, -1);
-    lua_pop(L, 1);
-    return value;
-}
-
-static char* get_string(lua_State* L, const char* name, error_fn on_error) {
-    lua_pushstring(L, name);
-    lua_gettable(L, -2);
-    if (!lua_isstring(L, -1)) {
-        on_error(L, "string \"%s\" not found, defaulting to NULL", name);
-        lua_pop(L, 1);
-        return NULL;
-    }
-    char* value = strdup(lua_tostring(L, -1));
-    lua_pop(L, 1);
-    return value;
-}
-
-static bool get_function(lua_State* L, const char* name, error_fn on_error) {
-    lua_pushstring(L, name);
-    lua_gettable(L, -2);
-    if (!lua_isfunction(L, -1)) {
-        on_error(L, "function \"%s\" not found\n", name);
-        return false;
-    }
-    return true;
 }
 
 static int l_scene_register_material(lua_State* L) {
@@ -117,23 +27,21 @@ static int l_scene_register_material(lua_State* L) {
 
     if (!scene) raise_error(L, "invalid scene");
 
-    if (!lua_istable(L, 2)) raise_error(L, "invalid material");
-
-    get_table(L, "color", raise_error);
-    vec3 color = (vec3){
-        .r = get_number_i(L, 1, raise_error),
-        .g = get_number_i(L, 2, raise_error),
-        .b = get_number_i(L, 3, raise_error),
-    };
-    lua_pop(L, 1); // color
-
-    float emission = get_number(L, "emission", raise_error);
-
-    lua_pushinteger(
+    vec3 color;
+    float emission;
+    bool res = parse(
         L,
-        scene_register_material(scene, material(color, emission))
+        "{color: {1: f, 2: f, 3: f}, emission: f}",
+        &color.r,
+        &color.g,
+        &color.b,
+        &emission
     );
 
+    if (!res) raise_error(L, "invalid material");
+
+    Material m = material(color, emission);
+    lua_pushinteger(L, scene_register_material(scene, m));
     return 1;
 }
 
@@ -144,56 +52,23 @@ static int l_scene_set(lua_State* L) {
 
     if (!scene) raise_error(L, "invalid scene");
 
-    if (!lua_isinteger(L, 3)) raise_error(L, "invalid material ID");
-    uint materialID = lua_tointeger(L, 3);
-    lua_pop(L, 1);
+    vec3 pos;
+    int materialID;
+    bool res = parse(
+        L,
+        "i; {1: f, 2: f, 3: f}",
+        &materialID,
+        &pos.x,
+        &pos.y,
+        &pos.z
+    );
 
-    if (!lua_istable(L, 2)) raise_error(L, "invalid position");
-
-    uvec3 pos = (uvec3){
-        .x = (int)get_number_i(L, 1, raise_error),
-        .y = (int)get_number_i(L, 2, raise_error),
-        .z = (int)get_number_i(L, 3, raise_error),
-    };
-
-    scene_set(scene, pos, materialID);
-
+    if (!res) raise_error(L, "invalid position or material");
+    scene_set(scene, (uvec3){.x = pos.x, .y = pos.y, .z = pos.z}, materialID);
     return 0;
 }
 
-static void make_scene_table(lua_State* L, Scene* scene) {
-    lua_createtable(L, 0, 0);
-
-    lua_pushstring(L, "size");
-    lua_createtable(L, 0, 0);
-
-    lua_pushstring(L, "x");
-    lua_pushnumber(L, scene_get_size(scene).x);
-    lua_settable(L, -3); // x
-
-    lua_pushstring(L, "y");
-    lua_pushnumber(L, scene_get_size(scene).y);
-    lua_settable(L, -3); // y
-
-    lua_pushstring(L, "z");
-    lua_pushnumber(L, scene_get_size(scene).z);
-    lua_settable(L, -3); // z
-
-    lua_settable(L, -3); // size
-
-    lua_pushstring(L, "register_material");
-    lua_pushcfunction(L, l_scene_register_material);
-    lua_settable(L, -3); // register_material
-
-    lua_pushstring(L, "set");
-    lua_pushcfunction(L, l_scene_set);
-    lua_settable(L, -3); // set
-
-    lua_pushlightuserdata(L, scene);
-    lua_setuservalue(L, -2);
-}
-
-void read_config(
+bool read_config(
     char* fileName,
     mc_Device_t* device,
     char** outputFile,
@@ -213,94 +88,104 @@ void read_config(
             lua_tostring(L, -1)
         );
         lua_close(L);
-        return;
+        return false;
     }
 
-    *outputFile = get_string(L, "output_file", warn_error);
+    int dataFunction;
+    float bgEmission, cameraFocalLength;
+    vec2 cameraSensorSize;
+    vec3 bgColor, cameraPosition, cameraRotation;
+    uvec3 sceneSize;
 
-    get_table(L, "settings", warn_error);
+    char* format = "{"
+                   "    output_file: s,"
+                   "    settings: {"
+                   "        renderer_code: s,"
+                   "        output_code: s,"
+                   "        workgroup_size: {1: i, 2: i},"
+                   "        image_size: {1: i, 2: i},"
+                   "        iterations: i,"
+                   "        max_depth: i"
+                   "    },"
+                   "    scene: {"
+                   "        size: {1: i, 2: i, 3: i},"
+                   "        bg: {color: {1: f, 2: f, 3: f}, emission: f},"
+                   "        data: l"
+                   "    },"
+                   "    camera: {"
+                   "        sensor_size: {1: f, 2: f},"
+                   "        focal_length: f,"
+                   "        position: {1: f, 2: f, 3: f},"
+                   "        rotation: {1: f, 2: f, 3: f}"
+                   "    }"
+                   "}";
 
-    info->rendererCode = get_string(L, "renderer_code", warn_error);
-    info->outputCode = get_string(L, "output_code", warn_error);
+    bool res = parse(
+        L,
+        format,
+        outputFile,
+        &info->rendererCode,
+        &info->outputCode,
+        &info->wgSize.x,
+        &info->wgSize.y,
+        &info->imageSize.x,
+        &info->imageSize.y,
+        &info->iters,
+        &info->maxRayDepth,
+        &sceneSize.x,
+        &sceneSize.y,
+        &sceneSize.z,
+        &bgColor.r,
+        &bgColor.g,
+        &bgColor.b,
+        &bgEmission,
+        &dataFunction,
+        &cameraSensorSize.x,
+        &cameraSensorSize.y,
+        &cameraFocalLength,
+        &cameraPosition.x,
+        &cameraPosition.y,
+        &cameraPosition.z,
+        &cameraRotation.x,
+        &cameraRotation.y,
+        &cameraRotation.z
+    );
 
-    get_table(L, "workgroup_size", warn_error);
-    info->wgSize.x = get_number_i(L, 1, warn_error);
-    info->wgSize.y = get_number_i(L, 2, warn_error);
-    lua_pop(L, 1); // workgroup_size
-
-    get_table(L, "image_size", warn_error);
-    info->imageSize.x = get_number_i(L, 1, warn_error);
-    info->imageSize.y = get_number_i(L, 2, warn_error);
-    lua_pop(L, 1); // image_size
-
-    info->iters = get_number(L, "iterations", warn_error);
-    info->maxRayDepth = get_number(L, "max_depth", warn_error);
-
-    lua_pop(L, 1); // settings
-
-    get_table(L, "scene", warn_error);
-
-    get_table(L, "size", warn_error);
-    uvec3 size = (uvec3){
-        .x = get_number_i(L, 1, warn_error),
-        .y = get_number_i(L, 2, warn_error),
-        .z = get_number_i(L, 3, warn_error),
-    };
-    lua_pop(L, 1); // size
-
-    get_table(L, "bg", warn_error);
-    get_table(L, "color", warn_error);
-    vec3 bg_color = (vec3){
-        .r = get_number_i(L, 1, warn_error),
-        .g = get_number_i(L, 2, warn_error),
-        .b = get_number_i(L, 3, warn_error),
-    };
-    lua_pop(L, 1); // color
-    float bg_emission = get_number(L, "emission", warn_error);
-    lua_pop(L, 1); // bg
-
-    *scene = scene_create(device, size, material(bg_color, bg_emission));
-
-    if (get_function(L, "data", warn_error)) {
-        INFO("running lua scene data function\n");
-        make_scene_table(L, *scene);
-        if (lua_pcall(L, 1, 0, 0)) {
-            WARN("error in lua function: %s\n", lua_tostring(L, -1));
-            lua_pop(L, 1);
-        }
+    if (!res) {
+        ERROR("failed to parse config file \"%s\"\n", fileName);
+        lua_close(L);
+        return false;
     }
 
-    lua_pop(L, 1); // scene
+    *scene = scene_create(device, sceneSize, material(bgColor, bgEmission));
+    *camera = camera_create(device, cameraSensorSize, cameraFocalLength);
+    camera_set(*camera, cameraPosition, cameraRotation);
 
-    get_table(L, "camera", warn_error);
+    INFO("running lua scene data function\n");
+    lua_rawgeti(L, LUA_REGISTRYINDEX, dataFunction);
 
-    get_table(L, "sensor_size", warn_error);
-    vec2 sensorSize = (vec2){
-        .x = get_number_i(L, 1, warn_error),
-        .y = get_number_i(L, 2, warn_error),
-    };
-    lua_pop(L, 1); // sensor_size
+    lua_createtable(L, 0, 0);
 
-    float focalLength = get_number(L, "focal_length", warn_error);
+    lua_pushstring(L, "size");
+    lua_createtable(L, 0, 0);
+    LUA_SET_FIELD(L, "x", number, scene_get_size(*scene).x);
+    LUA_SET_FIELD(L, "y", number, scene_get_size(*scene).y);
+    LUA_SET_FIELD(L, "z", number, scene_get_size(*scene).z);
+    lua_settable(L, -3); // size
 
-    get_table(L, "position", warn_error);
-    vec3 position = (vec3){
-        .x = get_number_i(L, 1, warn_error),
-        .y = get_number_i(L, 2, warn_error),
-        .z = get_number_i(L, 3, warn_error),
-    };
-    lua_pop(L, 1); // position
+    LUA_SET_FIELD(L, "register_material", cfunction, l_scene_register_material);
+    LUA_SET_FIELD(L, "set", cfunction, l_scene_set);
 
-    get_table(L, "rotation", warn_error);
-    vec3 direction = (vec3){
-        .x = get_number_i(L, 1, warn_error),
-        .y = get_number_i(L, 2, warn_error),
-        .z = get_number_i(L, 3, warn_error),
-    };
-    lua_pop(L, 1); // direction
+    lua_pushlightuserdata(L, *scene);
+    lua_setuservalue(L, -2);
 
-    *camera = camera_create(device, sensorSize, focalLength);
-    camera_set(*camera, position, direction);
+    if (lua_pcall(L, 1, 0, 0)) {
+        ERROR("error in lua function: %s\n", lua_tostring(L, -1));
+        lua_pop(L, 1);
+        lua_close(L);
+        return false;
+    }
 
-    lua_pop(L, 1); // camera
+    lua_close(L);
+    return true;
 }

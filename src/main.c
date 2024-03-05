@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     Scene* scene = NULL;
     Camera* camera = NULL;
 
-    read_config(
+    bool res = read_config(
         "../test/main.lua",
         dev,
         &outputFile,
@@ -26,6 +26,11 @@ int main(int argc, char** argv) {
         &scene,
         &camera
     );
+
+    if (!res) {
+        ERROR("failed to read config file");
+        return 1;
+    }
 
     scene_update_data(scene);
     scene_update_materials(scene);
