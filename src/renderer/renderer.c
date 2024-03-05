@@ -18,6 +18,10 @@ unsigned char* render(
     Scene* scene,
     Camera* camera
 ) {
+    CHECK_NULL(dev, NULL);
+    CHECK_NULL(scene, NULL);
+    CHECK_NULL(camera, NULL);
+
     INFO("preparing render with settings:");
     INFO("- device: \"%s\"", mc_device_get_name(dev));
     INFO("- work group size: %dx%d", settings.wgSize.x, settings.wgSize.y);
@@ -149,7 +153,7 @@ unsigned char* render(
         image
     );
 
-    INFO("cleaning up render");
+    DEBUG("cleaning up render");
     mc_program_destroy(renderProgram);
     mc_program_destroy(outputProgram);
     mc_buffer_destroy(infoBuff);

@@ -13,10 +13,10 @@ int main(int argc, char** argv) {
 
     INFO("using device \"%s\"", mc_device_get_name(dev));
 
-    char* outputFile;
-    RenderSettings settings;
-    Scene* scene;
-    Camera* camera;
+    char* outputFile = NULL;
+    RenderSettings settings = {0};
+    Scene* scene = NULL;
+    Camera* camera = NULL;
 
     read_config(
         "../test/main.lua",
@@ -43,12 +43,10 @@ int main(int argc, char** argv) {
         image
     );
 
+    INFO("cleanup");
     free(image);
-
     scene_destroy(scene);
     camera_destroy(camera);
-
-    INFO("destroying microcompute instance");
     mc_instance_destroy(instance);
 
     return 0;

@@ -27,6 +27,7 @@ float rad2deg(float rad) {
 }
 
 Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
+    CHECK_NULL(device, NULL);
     INFO("creating camera");
 
     Camera* camera = malloc(sizeof *camera);
@@ -45,18 +46,21 @@ Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
 }
 
 void camera_destroy(Camera* camera) {
-    INFO("destroying camera");
+    CHECK_NULL(camera);
+    DEBUG("destroying camera");
 
     mc_buffer_destroy(camera->dataBuff);
     free(camera);
 }
 
 void camera_update(Camera* camera) {
+    CHECK_NULL(camera);
     INFO("updating camera");
     mc_buffer_write(camera->dataBuff, 0, sizeof camera->data, &camera->data);
 }
 
 void camera_get(Camera* camera, vec3* pos, vec3* dir) {
+    CHECK_NULL(camera);
     *pos = camera->data.pos;
     *dir = (vec3){
         rad2deg(camera->data.dir.x),
@@ -66,10 +70,12 @@ void camera_get(Camera* camera, vec3* pos, vec3* dir) {
 }
 
 void camera_set(Camera* camera, vec3 pos, vec3 dir) {
+    CHECK_NULL(camera);
     camera->data.pos = pos;
     camera->data.dir = (vec3){deg2rad(dir.x), deg2rad(dir.y), deg2rad(dir.z)};
 }
 
 mc_Buffer_t* camera_get_data_buff(Camera* camera) {
+    CHECK_NULL(camera, NULL);
     return camera->dataBuff;
 }

@@ -80,3 +80,15 @@ void new_log(
     const char* fmt,
     ...
 );
+
+/**
+ * @brief Check if a pointer is NULL and log an error if it is
+ *
+ * @param ptr The pointer to check
+ * @param ret The value to return if the pointer is NULL
+ */
+#define CHECK_NULL(ptr, ...)                                                   \
+    if (!ptr) {                                                                \
+        WARN("%s: %s is null", __func__, #ptr);                                \
+        return __VA_ARGS__;                                                    \
+    }

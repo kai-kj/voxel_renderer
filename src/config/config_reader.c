@@ -220,33 +220,8 @@ void read_config(
 
     get_table(L, "settings", warn_error);
 
-    if (get_function(L, "renderer_code", warn_error)) {
-        INFO("running renderer code gen function\n");
-        if (lua_pcall(L, 0, 1, 0)) {
-            WARN("error in lua function: %s\n", lua_tostring(L, -1));
-            lua_pop(L, 1);
-        } else if (!lua_isstring(L, -1)) {
-            WARN("invalid renderer code, defaulting to empty string\n");
-            info->rendererCode = strdup("");
-        } else {
-            info->rendererCode = strdup(lua_tostring(L, -1));
-            lua_pop(L, 1);
-        }
-    }
-
-    if (get_function(L, "output_code", warn_error)) {
-        INFO("running output code gen function\n");
-        if (lua_pcall(L, 0, 1, 0)) {
-            WARN("error in lua function: %s\n", lua_tostring(L, -1));
-            lua_pop(L, 1);
-        } else if (!lua_isstring(L, -1)) {
-            WARN("invalid output code, defaulting to empty string\n");
-            info->outputCode = strdup("");
-        } else {
-            info->outputCode = strdup(lua_tostring(L, -1));
-            lua_pop(L, 1);
-        }
-    }
+    info->rendererCode = get_string(L, "renderer_code", warn_error);
+    info->outputCode = get_string(L, "output_code", warn_error);
 
     get_table(L, "workgroup_size", warn_error);
     info->wgSize.x = get_number_i(L, 1, warn_error);

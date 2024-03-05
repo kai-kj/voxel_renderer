@@ -4,8 +4,8 @@ local run_command = function(command)
     local f = io.popen(command)
     if f == nil then error("Failed to run command: " .. command) end
     local output = f:read("*a")
-    local status = { f:close() }
-    return output, status[3]
+    local _, _, status = f:close()
+    return output, status
 end
 
 local compile_shader = function(path, workgroup_size)
@@ -21,15 +21,8 @@ end
 return {
     output_file = "output.bmp",
     settings = {
-        renderer_code = function()
-            local code = compile_shader("../shader/renderer.glsl", workgroup_size)
-            return code
-        end,
-        output_code = function()
-            local code = compile_shader("../shader/output.glsl", workgroup_size)
-            print(code)
-            return code
-        end,
+        renderer_code = compile_shader("../shader/renderer.glsl", workgroup_size),
+        output_code = compile_shader("../shader/output.glsl", workgroup_size),
         workgroup_size = workgroup_size,
         image_size = { 1920, 1080 },
         iterations = 100,
