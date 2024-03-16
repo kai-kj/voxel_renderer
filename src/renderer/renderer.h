@@ -14,7 +14,6 @@ typedef struct {
 
 /**
  * @brief Render a scene
- *
  * @param dev The device to render with
  * @param settings The settings for the render
  * @param scene The scene to render

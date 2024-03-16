@@ -39,13 +39,13 @@ static uint coord_to_index(Scene* scene, uvec3 pos) {
          + pos.y * scene->data.size.x + pos.x;
 }
 
-Scene* scene_create(mc_Device_t* device, uvec3 size, Material bg) {
+Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo) {
     CHECK_NULL(device, NULL);
     INFO("creating scene");
 
     Scene* scene = malloc(sizeof *scene);
     *scene = (Scene){
-        .data = {.size = size, .bg = bg},
+        .data = {.size = sceneCreateInfo.size, .bg = sceneCreateInfo.bg},
         .materialCapacity = 10,
         .materialCount = 1,
     };
@@ -69,6 +69,7 @@ void scene_destroy(Scene* scene) {
     CHECK_NULL(scene);
     DEBUG("destroying scene");
 
+    free(scene->materials);
     free(scene->voxels);
     mc_buffer_destroy(scene->dataBuff);
     mc_buffer_destroy(scene->materialBuff);

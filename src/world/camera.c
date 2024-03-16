@@ -26,7 +26,7 @@ float rad2deg(float rad) {
     return rad * 180 / PI;
 }
 
-Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
+Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo) {
     CHECK_NULL(device, NULL);
     INFO("creating camera");
 
@@ -35,13 +35,16 @@ Camera* camera_create(mc_Device_t* device, vec2 sensorSize, float focalLength) {
         .data = {
             .pos = {0, 0, 0},
             .dir = {0, 0, 0},
-            .sensorSize = sensorSize,
-            .focalLength = focalLength,
+            .sensorSize = cameraCreateInfo.sensorSize,
+            .focalLength = cameraCreateInfo.focalLength,
         },
     };
 
     camera->dataBuff
         = mc_buffer_create_from(device, sizeof camera->data, &camera->data);
+
+    camera_set(camera, cameraCreateInfo.pos, cameraCreateInfo.rot);
+
     return camera;
 }
 

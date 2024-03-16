@@ -15,9 +15,10 @@ target_compile_options(
     -g
     -Wall
     -Wextra
-    -Werror
     -pedantic
+    -Werror
     -Wno-unused-parameter
+    -Wno-unused-variable
     -Wno-missing-braces
     -Wno-error=unused-function
     -ffile-prefix-map=${CMAKE_CURRENT_SOURCE_DIR}=.

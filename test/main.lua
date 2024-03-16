@@ -1,4 +1,5 @@
 local workgroup_size = { 16, 16 }
+local log_pos_len = 35
 
 local run_command = function(command)
     local f = io.popen(command)
@@ -20,7 +21,19 @@ end
 
 return {
     output_file = "output.bmp",
-    settings = {
+    log_function = function(lvl, _, file, line, msg)
+        local colors = { "\27[34m", "\27[32m", "\27[33m", "\27[31m" }
+        local color = colors[lvl + 1]
+
+        local lvls = { "DEBUG  ", "INFO   ", "WARN   ", "ERROR  ", "UNKNOW" }
+        local lvl = lvls[lvl + 1]
+
+        local pos = #file ~= 0 and file .. ":" .. line or ""
+        pos = pos:sub(1, log_pos_len) .. string.rep(" ", log_pos_len - #pos)
+
+        print(color .. lvl .. " │ " .. pos .. " │ " .. msg:gsub("\n", "") .. "\27[0m")
+    end,
+    renderer = {
         renderer_code = compile_shader("../shader/renderer.glsl", workgroup_size),
         output_code = compile_shader("../shader/output.glsl", workgroup_size),
         workgroup_size = workgroup_size,
@@ -31,17 +44,17 @@ return {
     scene = {
         size = { 50, 50, 50 },
         bg = { color = { 0.5, 0.5, 1.0 }, emission = 1 },
-        data = function(scene)
+        data_function = function(scene)
             local white = scene:register_material({ color = { 0.8, 0.8, 0.8 }, emission = 0 })
             local red = scene:register_material({ color = { 0.8, 0.1, 0.1 }, emission = 0 })
             local green = scene:register_material({ color = { 0.1, 0.8, 0.1 }, emission = 0 })
             local light = scene:register_material({ color = { 1.0, 1.0, 0.5 }, emission = 10 })
 
             -- floor and ceiling
-            for x = 0, scene.size.x - 1 do
-                for z = 0, scene.size.z - 1 do
+            for x = 0, 50 - 1 do
+                for z = 0, 50 - 1 do
                     scene:set({ x, 0, z }, white)
-                    scene:set({ x, scene.size.y - 1, z }, white)
+                    scene:set({ x, 50 - 1, z }, white)
                 end
             end
 

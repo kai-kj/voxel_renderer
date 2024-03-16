@@ -47,6 +47,12 @@ unsigned char* render(
         return NULL;
     }
 
+    INFO("updating scene and camera");
+    scene_update_data(scene);
+    scene_update_materials(scene);
+    scene_update_voxels(scene);
+    camera_update(camera);
+
     ShaderCode* renderCode = shader_code_create(settings.rendererCode);
     if (!renderCode) {
         ERROR("failed to create render code");
@@ -132,7 +138,7 @@ unsigned char* render(
     double rate = elapsed / settings.iters;
     INFO("finished render in %.02fs (%.02f ms/frame)", elapsed, rate * 1000.0);
 
-    INFO("convert image into bytes");
+    INFO("converting image into bytes");
 
     unsigned char* image
         = malloc(settings.imageSize.x * settings.imageSize.y * 4);
