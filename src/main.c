@@ -203,7 +203,8 @@ int main(int argc, char** argv) {
     camera_destroy(camera);
     mc_instance_destroy(instance);
 
-    lua_close(l);
+    INFO("all done, goodbye!");
 
+    lua_close(l);
     return 0;
 }

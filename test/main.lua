@@ -3,7 +3,9 @@ local log_pos_len = 35
 
 local run_command = function(command)
     local f = io.popen(command)
-    if f == nil then error("Failed to run command: " .. command) end
+    if f == nil then
+        error("Failed to run command: " .. command)
+    end
     local output = f:read("*a")
     local _, _, status = f:close()
     return output, status
@@ -25,7 +27,7 @@ return {
         local colors = { "\27[34m", "\27[32m", "\27[33m", "\27[31m" }
         local color = colors[lvl + 1]
 
-        local lvls = { "DEBUG  ", "INFO   ", "WARN   ", "ERROR  ", "UNKNOW" }
+        local lvls = { "DEBUG  ", "INFO   ", "WARN   ", "ERROR  ", "UNKNOWN" }
         local lvl = lvls[lvl + 1]
 
         local pos = #file ~= 0 and file .. ":" .. line or ""
