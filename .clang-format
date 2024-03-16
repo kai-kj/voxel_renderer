@@ -18,16 +18,13 @@ AllowShortLoopsOnASingleLine: true
 BinPackArguments: false
 BinPackParameters: false
 
-BreakBeforeBinaryOperators: All
-BreakBeforeTernaryOperators: true
-
 PointerAlignment: Left
 ReferenceAlignment: Right
 
 AlignAfterOpenBracket: BlockIndent
 AlignOperands: AlignAfterOperator
 
-BreakBeforeTernaryOperators: false
+#BreakBeforeTernaryOperators: false
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 
