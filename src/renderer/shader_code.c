@@ -11,7 +11,7 @@ struct ShaderCode {
 };
 
 ShaderCode* shader_code_create(const char* code) {
-    CHECK_NULL(code, NULL);
+    CHECK_NULL(code, NULL)
     INFO("assembling shader code");
 
     ShaderCode* shaderCode = malloc(sizeof(ShaderCode));
@@ -39,18 +39,18 @@ ShaderCode* shader_code_create(const char* code) {
 }
 
 void shader_code_destroy(ShaderCode* shaderCode) {
-    CHECK_NULL(shaderCode);
+    CHECK_NULL(shaderCode)
     DEBUG("destroying shader code");
     if (shaderCode->bytecode) free(shaderCode->bytecode);
     free(shaderCode);
 }
 
 size_t shader_code_get_size(ShaderCode* shaderCode) {
-    CHECK_NULL(shaderCode, 0);
+    CHECK_NULL(shaderCode, 0)
     return shaderCode->size;
 }
 
 char* shader_code_get_bytecode(ShaderCode* shaderCode) {
-    CHECK_NULL(shaderCode, NULL);
+    CHECK_NULL(shaderCode, NULL)
     return shaderCode->bytecode;
 }

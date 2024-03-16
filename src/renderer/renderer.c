@@ -1,6 +1,4 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "logger/logger.h"
 #include "renderer.h"
@@ -18,15 +16,15 @@ unsigned char* render(
     Scene* scene,
     Camera* camera
 ) {
-    CHECK_NULL(dev, NULL);
-    CHECK_NULL(scene, NULL);
-    CHECK_NULL(camera, NULL);
+    CHECK_NULL(dev, NULL)
+    CHECK_NULL(scene, NULL)
+    CHECK_NULL(camera, NULL)
 
     INFO("preparing render with settings:");
     INFO("- device: \"%s\"", mc_device_get_name(dev));
     INFO("- work group size: %dx%d", settings.wgSize.x, settings.wgSize.y);
     INFO("- image size: %dx%d", settings.imageSize.x, settings.imageSize.y);
-    INFO("- iters: %d", settings.iters);
+    INFO("- iterations: %d", settings.iterations);
     INFO("- max ray depth: %d", settings.maxRayDepth);
 
     uint maxWGSizeTotal = mc_device_get_max_workgroup_size_total(dev);
@@ -106,17 +104,17 @@ unsigned char* render(
     RenderInfo info = {settings.maxRayDepth, 0, 0};
     mc_Buffer_t* infoBuff = mc_buffer_create(dev, sizeof(RenderInfo));
 
-    INFO("starting render (%d iters):", settings.iters);
+    INFO("starting render (%d iterations):", settings.iterations);
 
     double start = mc_get_time();
     srand((uint)start);
 
-    for (uint i = 0; i < settings.iters; i++) {
+    for (uint i = 0; i < settings.iterations; i++) {
         info.iter = i + 1;
         info.seed = (float)rand() / (float)RAND_MAX;
 
-        float progress = (float)(i + 1) / (float)settings.iters * 100.0f;
-        INFO("- %d/%d (%.2f%%)", info.iter, settings.iters, progress);
+        float progress = (float)(i + 1) / (float)settings.iterations * 100.0f;
+        INFO("- %d/%d (%.2f%%)", info.iter, settings.iterations, progress);
 
         mc_buffer_write(infoBuff, 0, sizeof info, &info);
 
@@ -135,7 +133,7 @@ unsigned char* render(
     }
 
     double elapsed = mc_get_time() - start;
-    double rate = elapsed / settings.iters;
+    double rate = elapsed / settings.iterations;
     INFO("finished render in %.02fs (%.02f ms/frame)", elapsed, rate * 1000.0);
 
     INFO("converting image into bytes");

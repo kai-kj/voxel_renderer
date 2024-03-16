@@ -46,13 +46,6 @@ void scene_update_materials(Scene* scene);
 void scene_update_voxels(Scene* scene);
 
 /**
- * @brief Get the size of a scene
- * @param scene The scene to get the size of
- * @return The size of the scene
- */
-uvec3 scene_get_size(Scene* scene);
-
-/**
  * @brief Create a new material in a scene
  * @param scene The scene to create the material in
  * @param material The material to create

@@ -34,14 +34,6 @@ void camera_destroy(Camera* camera);
 void camera_update(Camera* camera);
 
 /**
- * @brief Get the position and rotation of a camera
- * @param camera The camera to get
- * @param pos The position of the camera
- * @param rot The rotation of the camera in degrees (LR, UD, _)
- */
-void camera_get(Camera* camera, vec3* pos, vec3* rot);
-
-/**
  * @brief Set the position and rotation of a camera
  * @param camera The camera to set
  * @param pos The new position of the camera

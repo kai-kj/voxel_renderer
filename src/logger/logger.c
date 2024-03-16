@@ -1,8 +1,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/time.h>
-#include <time.h>
 
 #include "logger.h"
 
@@ -15,12 +13,12 @@ void set_log_fn(log_fn fn, void* arg) {
 }
 
 void basic_log_fn(
-    int lvl,
-    char* src,
-    char* file,
-    int line,
+    __attribute__((unused)) int lvl,
+    __attribute__((unused)) char* src,
+    __attribute__((unused)) char* file,
+    __attribute__((unused)) int line,
     char* msg,
-    void* arg
+    __attribute__((unused)) void* arg
 ) {
     for (char* c = msg; *c != '\0'; c++) {
         if (*c == '\n') *c = ' ';
@@ -31,7 +29,7 @@ void basic_log_fn(
 void new_log(
     mc_LogLevel_t lvl,
     char* src,
-    void* arg,
+    __attribute__((unused)) void* arg,
     char* file,
     int line,
     char* fmt,

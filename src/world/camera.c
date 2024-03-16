@@ -1,10 +1,9 @@
-#include <math.h>
 #include <stdlib.h>
 
 #include "camera.h"
 #include "logger/logger.h"
 
-#define PI 3.14159265358979323846
+#define PI 3.14159265358979323846f
 
 typedef struct {
     vec3 pos;
@@ -27,7 +26,7 @@ float rad2deg(float rad) {
 }
 
 Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo) {
-    CHECK_NULL(device, NULL);
+    CHECK_NULL(device, NULL)
     INFO("creating camera");
 
     Camera* camera = malloc(sizeof *camera);
@@ -49,7 +48,7 @@ Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo) {
 }
 
 void camera_destroy(Camera* camera) {
-    CHECK_NULL(camera);
+    CHECK_NULL(camera)
     DEBUG("destroying camera");
 
     mc_buffer_destroy(camera->dataBuff);
@@ -57,28 +56,18 @@ void camera_destroy(Camera* camera) {
 }
 
 void camera_update(Camera* camera) {
-    CHECK_NULL(camera);
+    CHECK_NULL(camera)
     INFO("updating camera");
     mc_buffer_write(camera->dataBuff, 0, sizeof camera->data, &camera->data);
 }
 
-void camera_get(Camera* camera, vec3* pos, vec3* dir) {
-    CHECK_NULL(camera);
-    *pos = camera->data.pos;
-    *dir = (vec3){
-        rad2deg(camera->data.dir.x),
-        rad2deg(camera->data.dir.y),
-        rad2deg(camera->data.dir.z),
-    };
-}
-
 void camera_set(Camera* camera, vec3 pos, vec3 dir) {
-    CHECK_NULL(camera);
+    CHECK_NULL(camera)
     camera->data.pos = pos;
     camera->data.dir = (vec3){deg2rad(dir.x), deg2rad(dir.y), deg2rad(dir.z)};
 }
 
 mc_Buffer_t* camera_get_data_buff(Camera* camera) {
-    CHECK_NULL(camera, NULL);
+    CHECK_NULL(camera, NULL)
     return camera->dataBuff;
 }

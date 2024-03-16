@@ -11,7 +11,7 @@ static bool is_key(char c) {
         || (c >= 'A' && c <= 'Z') || c == '_';
 }
 
-static bool is_integer(char* str, int len) {
+static bool is_integer(const char* str, int len) {
     for (int i = 0; i < len; i++) {
         if (str[i] < '0' || str[i] > '9') return false;
     }
@@ -81,7 +81,7 @@ static bool lua_pop_f__(lua_State* L, char** fmt, va_list arg) {
                     consume_spaces(fmt);
                     char* key = *fmt;
                     while (is_key(**fmt)) (*fmt)++;
-                    int keyLen = *fmt - key;
+                    int keyLen = (int)(*fmt - key);
                     consume_spaces(fmt);
                     if (**fmt != ':') {
                         ERROR("expected ':', got '%c'", **fmt);
@@ -153,7 +153,7 @@ static bool lua_push_f__(lua_State* L, char** fmt, va_list arg) {
                     consume_spaces(fmt);
                     char* key = *fmt;
                     while (is_key(**fmt)) (*fmt)++;
-                    int keyLen = *fmt - key;
+                    int keyLen = (int)(*fmt - key);
                     consume_spaces(fmt);
                     if (**fmt != ':') {
                         ERROR("expected ':', got '%c'", **fmt);

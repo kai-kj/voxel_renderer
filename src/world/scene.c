@@ -40,7 +40,7 @@ static uint coord_to_index(Scene* scene, uvec3 pos) {
 }
 
 Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo) {
-    CHECK_NULL(device, NULL);
+    CHECK_NULL(device, NULL)
     INFO("creating scene");
 
     Scene* scene = malloc(sizeof *scene);
@@ -66,7 +66,7 @@ Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo) {
 }
 
 void scene_destroy(Scene* scene) {
-    CHECK_NULL(scene);
+    CHECK_NULL(scene)
     DEBUG("destroying scene");
 
     free(scene->materials);
@@ -78,13 +78,13 @@ void scene_destroy(Scene* scene) {
 }
 
 void scene_update_data(Scene* scene) {
-    CHECK_NULL(scene);
+    CHECK_NULL(scene)
     INFO("updating scene data");
     mc_buffer_write(scene->dataBuff, 0, sizeof scene->data, &scene->data);
 }
 
 void scene_update_materials(Scene* scene) {
-    CHECK_NULL(scene);
+    CHECK_NULL(scene)
     INFO("updating scene materials");
     mc_buffer_write(
         scene->materialBuff,
@@ -95,18 +95,13 @@ void scene_update_materials(Scene* scene) {
 }
 
 void scene_update_voxels(Scene* scene) {
-    CHECK_NULL(scene);
+    CHECK_NULL(scene)
     INFO("updating scene voxels");
     mc_buffer_write(scene->voxelBuff, 0, voxels_size(scene), scene->voxels);
 }
 
-uvec3 scene_get_size(Scene* scene) {
-    CHECK_NULL(scene, (uvec3){0, 0, 0});
-    return scene->data.size;
-}
-
 uint scene_register_material(Scene* scene, Material material) {
-    CHECK_NULL(scene, 0);
+    CHECK_NULL(scene, 0)
     if (scene->materialCount == scene->materialCapacity) {
         scene->materialCapacity *= 2;
         scene->materials = realloc(
@@ -125,23 +120,23 @@ uint scene_register_material(Scene* scene, Material material) {
     return scene->materialCount - 1;
 }
 
-void scene_set(Scene* scene, uvec3 pos, uint materiaID) {
-    CHECK_NULL(scene);
+void scene_set(Scene* scene, uvec3 pos, uint materialID) {
+    CHECK_NULL(scene)
     if (!coord_in_bounds(scene, pos)) return;
-    scene->voxels[coord_to_index(scene, pos)] = materiaID;
+    scene->voxels[coord_to_index(scene, pos)] = materialID;
 }
 
 mc_Buffer_t* scene_get_data_buff(Scene* scene) {
-    CHECK_NULL(scene, NULL);
+    CHECK_NULL(scene, NULL)
     return scene->dataBuff;
 }
 
 mc_Buffer_t* scene_get_material_buff(Scene* scene) {
-    CHECK_NULL(scene, NULL);
+    CHECK_NULL(scene, NULL)
     return scene->materialBuff;
 }
 
 mc_Buffer_t* scene_get_voxel_buff(Scene* scene) {
-    CHECK_NULL(scene, NULL);
+    CHECK_NULL(scene, NULL)
     return scene->voxelBuff;
 }

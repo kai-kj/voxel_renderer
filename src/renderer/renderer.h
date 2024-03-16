@@ -8,7 +8,7 @@ typedef struct {
     char* outputCode;   ///< The output shader code
     uvec2 wgSize;       ///< The workgroup size
     uvec2 imageSize;    ///< The size of the image
-    uint iters;         ///< The number of iterations
+    uint iterations;    ///< The number of iterations
     uint maxRayDepth;   ///< The maximum ray depth
 } RenderSettings;
 

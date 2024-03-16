@@ -63,7 +63,11 @@ static int l_scene_set(lua_State* l) {
     );
 
     if (!res) lua_raise_error(l, "invalid position or material");
-    scene_set(scene, (uvec3){.x = pos.x, .y = pos.y, .z = pos.z}, materialID);
+    scene_set(
+        scene,
+        (uvec3){.x = (int)pos.x, .y = (int)pos.y, .z = (int)pos.z},
+        materialID
+    );
     return 0;
 }
 
@@ -129,7 +133,7 @@ int main(int argc, char** argv) {
         &rendererSettings.wgSize.y,
         &rendererSettings.imageSize.x,
         &rendererSettings.imageSize.y,
-        &rendererSettings.iters,
+        &rendererSettings.iterations,
         &rendererSettings.maxRayDepth,
         &sceneCreateInfo.size.x,
         &sceneCreateInfo.size.y,
@@ -191,8 +195,8 @@ int main(int argc, char** argv) {
     INFO("writing image to \"%s\"", outputFile);
     stbi_write_bmp(
         outputFile,
-        rendererSettings.imageSize.x,
-        rendererSettings.imageSize.y,
+        (int)rendererSettings.imageSize.x,
+        (int)rendererSettings.imageSize.y,
         4,
         image
     );
