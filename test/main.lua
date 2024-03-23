@@ -26,7 +26,7 @@ local root = run_command("pwd"):gsub("/[^/]*$", "/")
 return {
     output_file = "output.bmp",
 
-    log_function = function(lvl, src, file, line, msg)
+    logger = function(lvl, src, file, line, msg)
         local colors = { "\27[34m", "\27[32m", "\27[33m", "\27[31m" }
         local color = colors[lvl + 1]
 
@@ -42,6 +42,20 @@ return {
         print(color .. lvl .. " │ " .. src .. " │ " .. pos .. " │ " .. msg:gsub("\n", "") .. "\27[0m")
     end,
 
+    device_selector = function(devices)
+        local best = { index = 1, score = 0 }
+        for i, device in ipairs(devices) do
+            local score = 0
+            if device.type == "gpu" then
+                score = score + 1
+            end
+            if score > best.score then
+                best = { index = i, score = score }
+            end
+        end
+        return best.index;
+    end,
+
     renderer = {
         renderer_code = read_file("../shader/renderer.glsl"),
         output_code = read_file("../shader/output.glsl"),
@@ -54,7 +68,7 @@ return {
     scene = {
         size = { 50, 50, 50 },
         bg = { color = { 0.5, 0.5, 1.0 }, emission = 1 },
-        data_function = function(scene)
+        voxel_placer = function(scene)
             local white = scene:register_material({ color = { 0.8, 0.8, 0.8 }, emission = 0 })
             local red = scene:register_material({ color = { 0.8, 0.1, 0.1 }, emission = 0 })
             local green = scene:register_material({ color = { 0.1, 0.8, 0.1 }, emission = 0 })

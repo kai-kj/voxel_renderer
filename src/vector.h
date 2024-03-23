@@ -1,5 +1,4 @@
-#ifndef vec_H_INCLUDE_GUARD
-#define vec_H_INCLUDE_GUARD
+#pragma once
 
 typedef unsigned int uint;
 
@@ -167,18 +166,3 @@ typedef union {
         uint _3;
     };
 } uvec4;
-
-#ifdef vec_SHORT_NAMES
-#define uint uint
-#define vec2 vec2
-#define vec3 vec3
-#define vec4 vec4
-#define ivec2 ivec2
-#define ivec3 ivec3
-#define ivec4 ivec4
-#define uvec2 uvec2
-#define uvec3 uvec3
-#define uvec4 uvec4
-#endif
-
-#endif

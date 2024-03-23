@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "microcompute.h"
+#include "microcompute_extra.h"
 
 typedef void (*log_fn)(void*, int, const char*, const char*, int, const char*);
 

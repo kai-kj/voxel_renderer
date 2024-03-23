@@ -93,14 +93,15 @@ int main(int argc, char** argv) {
     }
 
     char* outputFile;
-    int logFunction, sceneDataFunction;
+    int logFunction, deviceFunction, sceneDataFunction;
     RenderSettings rendererSettings;
     SceneCreateInfo sceneCreateInfo;
     CameraCreateInfo cameraCreateInfo;
 
     char* format = "{"
                    "    output_file: s,"
-                   "    log_function: l,"
+                   "    logger: l,"
+                   "    device_selector: l,"
                    "    renderer: {"
                    "        renderer_code: s,"
                    "        output_code: s,"
@@ -112,7 +113,7 @@ int main(int argc, char** argv) {
                    "    scene: {"
                    "        size: {1: i, 2: i, 3: i},"
                    "        bg: {color: {1: f, 2: f, 3: f}, emission: f},"
-                   "        data_function: l"
+                   "        voxel_placer: l"
                    "    },"
                    "    camera: {"
                    "        sensor_size: {1: f, 2: f},"
@@ -127,6 +128,7 @@ int main(int argc, char** argv) {
         format,
         &outputFile,
         &logFunction,
+        &deviceFunction,
         &rendererSettings.rendererCode,
         &rendererSettings.outputCode,
         &rendererSettings.wgSize.x,
@@ -164,14 +166,54 @@ int main(int argc, char** argv) {
 
     INFO("creating microcompute instance");
     mc_Instance* instance = mc_instance_create((mc_log_fn*)new_log, NULL);
-    mc_Device* dev = mc_instance_get_devices(instance)[1];
+    if (instance == NULL) {
+        ERROR("failed to create microcompute instance");
+        return 1;
+    }
+
+    INFO("running device selection function\n");
+    lua_rawgeti(l, LUA_REGISTRYINDEX, deviceFunction);
+    int deviceCount = (int)mc_instance_get_device_count(instance);
+
+    lua_newtable(l);
+    for (int i = 0; i < deviceCount; i++) {
+        mc_Device* dev = mc_instance_get_devices(instance)[i];
+        char* name = mc_device_get_name(dev);
+        char* type = (char*)mc_device_type_to_str(mc_device_get_type(dev)) + 15;
+        lua_push_f(l, "i; {name: s, type: s}", i + 1, name, type);
+        lua_settable(l, -3);
+    }
+
+    if (lua_pcall(l, 1, 1, 0)) {
+        ERROR("error in device selector function: %s\n", lua_tostring(l, -1));
+        return 1;
+    }
+
+    int deviceIndex;
+    res = lua_pop_f(l, "i", &deviceIndex);
+
+    if (!res || deviceIndex < 1 || deviceIndex > deviceCount) {
+        ERROR("invalid device index");
+        return 1;
+    }
+
+    mc_Device* dev = mc_instance_get_devices(instance)[deviceIndex - 1];
 
     INFO("using device \"%s\"", mc_device_get_name(dev));
 
     Scene* scene = scene_create(dev, sceneCreateInfo);
-    Camera* camera = camera_create(dev, cameraCreateInfo);
+    if (scene == NULL) {
+        ERROR("failed to create scene");
+        return 1;
+    }
 
-    INFO("running lua scene data function\n");
+    Camera* camera = camera_create(dev, cameraCreateInfo);
+    if (camera == NULL) {
+        ERROR("failed to create camera");
+        return 1;
+    }
+
+    INFO("running voxel placer function\n");
     lua_rawgeti(l, LUA_REGISTRYINDEX, sceneDataFunction);
 
     lua_push_f(
@@ -186,11 +228,15 @@ int main(int argc, char** argv) {
     );
 
     if (lua_pcall(l, 1, 0, 0)) {
-        ERROR("error in lua function: %s\n", lua_tostring(l, -1));
+        ERROR("error in voxel placer function: %s\n", lua_tostring(l, -1));
         return 1;
     }
 
     unsigned char* image = render(dev, rendererSettings, scene, camera);
+    if (image == NULL) {
+        ERROR("failed to render image");
+        return 1;
+    }
 
     INFO("writing image to \"%s\"", outputFile);
     stbi_write_bmp(
