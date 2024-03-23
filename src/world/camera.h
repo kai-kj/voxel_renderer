@@ -1,8 +1,8 @@
 #pragma once
 
-#define MC_VEC_SHORT_NAMES
-#include "microcompute/mc.h"
-#include "microcompute/mc_vec.h"
+#define vec_SHORT_NAMES
+#include "microcompute_extra.h"
+#include "vector.h"
 
 typedef struct Camera Camera;
 
@@ -19,7 +19,7 @@ typedef struct CameraCreateInfo {
  * @param cameraCreateInfo The camera creation info
  * @return A new camera
  */
-Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo);
+Camera* camera_create(mc_Device* device, CameraCreateInfo cameraCreateInfo);
 
 /**
  * @brief Destroy a camera
@@ -46,4 +46,4 @@ void camera_set(Camera* camera, vec3 pos, vec3 rot);
  * @param camera The camera to get the data buffer of
  * @return The data buffer
  */
-mc_Buffer_t* camera_get_data_buff(Camera* camera);
+mce_HBuffer* camera_get_data_buff(Camera* camera);

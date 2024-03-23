@@ -1,5 +1,5 @@
-local workgroup_size = { 16, 16 }
-local log_pos_len = 35
+local src_pos_len = 10
+local log_pos_len = 50
 
 local run_command = function(command)
     local f = io.popen(command)
@@ -8,41 +8,49 @@ local run_command = function(command)
     end
     local output = f:read("*a")
     local _, _, status = f:close()
-    return output, status
+    return output:sub(1, -2), status
 end
 
-local compile_shader = function(path, workgroup_size)
-    local defs = "-DWORKGROUP_SIZE_X=" .. workgroup_size[1] .. " -DWORKGROUP_SIZE_Y=" .. workgroup_size[2]
-    local output, status = run_command("glslc -S -O -fshader-stage=comp " .. defs .. " " .. path .. " -o -")
-    if status ~= 0 then
-        print(output)
-        error("Failed to compile shader " .. path .. " (see above)")
+local read_file = function(path)
+    local file = io.open(path, "r")
+    if file == nil then
+        error("failed to open file: " .. path)
     end
-    return output
+    local content = file:read("*a")
+    file:close()
+    return content
 end
+
+local root = run_command("pwd"):gsub("/[^/]*$", "/")
 
 return {
     output_file = "output.bmp",
-    log_function = function(lvl, _, file, line, msg)
+
+    log_function = function(lvl, src, file, line, msg)
         local colors = { "\27[34m", "\27[32m", "\27[33m", "\27[31m" }
         local color = colors[lvl + 1]
 
         local lvls = { "DEBUG  ", "INFO   ", "WARN   ", "ERROR  ", "UNKNOWN" }
         local lvl = lvls[lvl + 1]
 
+        local src = src:sub(1, src_pos_len) .. string.rep(" ", src_pos_len - #src)
+
+        local file = file:gsub(root, "")
         local pos = #file ~= 0 and file .. ":" .. line or ""
         pos = pos:sub(1, log_pos_len) .. string.rep(" ", log_pos_len - #pos)
 
-        print(color .. lvl .. " │ " .. pos .. " │ " .. msg:gsub("\n", "") .. "\27[0m")
+        print(color .. lvl .. " │ " .. src .. " │ " .. pos .. " │ " .. msg:gsub("\n", "") .. "\27[0m")
     end,
+
     renderer = {
-        renderer_code = compile_shader("../shader/renderer.glsl", workgroup_size),
-        output_code = compile_shader("../shader/output.glsl", workgroup_size),
-        workgroup_size = workgroup_size,
+        renderer_code = read_file("../shader/renderer.glsl"),
+        output_code = read_file("../shader/output.glsl"),
+        workgroup_size = { 16, 16 },
         image_size = { 1920, 1080 },
         iterations = 100,
         max_depth = 5,
     },
+
     scene = {
         size = { 50, 50, 50 },
         bg = { color = { 0.5, 0.5, 1.0 }, emission = 1 },
@@ -90,12 +98,13 @@ return {
                     end
                 end
             end
-        end
+        end,
     },
+
     camera = {
         sensor_size = { 1.9, 1.0 },
         focal_length = 1,
         position = { 40, 10, -75 },
         rotation = { 5, 10, 0 },
-    }
+    },
 }

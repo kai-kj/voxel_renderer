@@ -22,7 +22,7 @@ typedef struct {
  * caller)
  */
 unsigned char* render(
-    mc_Device_t* dev,
+    mc_Device* dev,
     RenderSettings settings,
     Scene* scene,
     Camera* camera

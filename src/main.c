@@ -11,12 +11,12 @@ typedef struct LogArg {
 } LogArg;
 
 static void l_log(
+    void* arg,
     int lvl,
-    char* src,
-    char* file,
+    const char* src,
+    const char* file,
     int line,
-    char* msg,
-    void* arg
+    const char* msg
 ) {
     lua_State* l = ((LogArg*)arg)->l;
     int logFunction = ((LogArg*)arg)->logFunction;
@@ -163,8 +163,8 @@ int main(int argc, char** argv) {
     set_log_fn(l_log, &logArg);
 
     INFO("creating microcompute instance");
-    mc_Instance_t* instance = mc_instance_create((mc_log_cb*)new_log, NULL);
-    mc_Device_t* dev = mc_instance_get_devices(instance)[0];
+    mc_Instance* instance = mc_instance_create((mc_log_fn*)new_log, NULL);
+    mc_Device* dev = mc_instance_get_devices(instance)[1];
 
     INFO("using device \"%s\"", mc_device_get_name(dev));
 

@@ -2,7 +2,7 @@
 
 #include "logger/logger.h"
 #include "renderer.h"
-#include "shader_code.h"
+#include "shader_compiler.h"
 
 typedef struct {
     uint maxRayDepth;
@@ -11,7 +11,7 @@ typedef struct {
 } RenderInfo;
 
 unsigned char* render(
-    mc_Device_t* dev,
+    mc_Device* dev,
     RenderSettings settings,
     Scene* scene,
     Camera* camera
@@ -51,58 +51,51 @@ unsigned char* render(
     scene_update_voxels(scene);
     camera_update(camera);
 
-    ShaderCode* renderCode = shader_code_create(settings.rendererCode);
-    if (!renderCode) {
-        ERROR("failed to create render code");
-        return NULL;
-    }
-
-    mc_Program_t* renderProgram = mc_program_create(
-        dev,
-        shader_code_get_size(renderCode),
-        shader_code_get_bytecode(renderCode),
-        "main"
+    SPIRVCode renderCode = compile_glsl(
+        "render_shader",
+        settings.rendererCode,
+        "main",
+        settings.wgSize
     );
-
-    shader_code_destroy(renderCode);
-
-    if (!renderProgram) {
-        ERROR("failed to create render program");
+    if (renderCode.size == 0) {
+        ERROR("failed to compile render code");
         return NULL;
     }
 
-    ShaderCode* outputCode = shader_code_create(settings.outputCode);
-    if (!outputCode) {
-        ERROR("failed to create output code");
-        return NULL;
-    }
+    mc_Program* renderProgram
+        = mc_program_create(dev, renderCode.size, renderCode.code, "main");
 
-    mc_Program_t* outputProgram = mc_program_create(
-        dev,
-        shader_code_get_size(outputCode),
-        shader_code_get_bytecode(outputCode),
-        "main"
+    SPIRVCode outputCode = compile_glsl(
+        "output_shader",
+        settings.outputCode,
+        "main",
+        settings.wgSize
     );
+    if (outputCode.size == 0) {
+        ERROR("failed to compile output code");
+        return NULL;
+    }
 
-    shader_code_destroy(outputCode);
+    mc_Program* outputProgram
+        = mc_program_create(dev, outputCode.size, outputCode.code, "main");
 
     if (!outputProgram) {
         ERROR("failed to create output program");
         return NULL;
     }
 
-    mc_Buffer_t* fImageBuff = mc_buffer_create(
+    mce_HBuffer* fImageBuff = mce_hybrid_buffer_create(
         dev,
         settings.imageSize.x * settings.imageSize.y * sizeof(vec3)
     );
 
-    mc_Buffer_t* iImageBuff = mc_buffer_create(
+    mce_HBuffer* iImageBuff = mce_hybrid_buffer_create(
         dev,
         settings.imageSize.x * settings.imageSize.y * sizeof(int)
     );
 
     RenderInfo info = {settings.maxRayDepth, 0, 0};
-    mc_Buffer_t* infoBuff = mc_buffer_create(dev, sizeof(RenderInfo));
+    mce_HBuffer* infoBuff = mce_hybrid_buffer_create(dev, sizeof(RenderInfo));
 
     INFO("starting render (%d iterations):", settings.iterations);
 
@@ -116,7 +109,7 @@ unsigned char* render(
         float progress = (float)(i + 1) / (float)settings.iterations * 100.0f;
         INFO("- %d/%d (%.2f%%)", info.iter, settings.iterations, progress);
 
-        mc_buffer_write(infoBuff, 0, sizeof info, &info);
+        mce_hybrid_buffer_write(infoBuff, 0, sizeof info, &info);
 
         mc_program_run(
             renderProgram,
@@ -150,7 +143,7 @@ unsigned char* render(
         iImageBuff
     );
 
-    mc_buffer_read(
+    mce_hybrid_buffer_read(
         iImageBuff,
         0,
         settings.imageSize.x * settings.imageSize.y * 4,
@@ -160,9 +153,9 @@ unsigned char* render(
     DEBUG("cleaning up render");
     mc_program_destroy(renderProgram);
     mc_program_destroy(outputProgram);
-    mc_buffer_destroy(infoBuff);
-    mc_buffer_destroy(fImageBuff);
-    mc_buffer_destroy(iImageBuff);
+    mce_hybrid_buffer_destroy(infoBuff);
+    mce_hybrid_buffer_destroy(fImageBuff);
+    mce_hybrid_buffer_destroy(iImageBuff);
 
     return image;
 }

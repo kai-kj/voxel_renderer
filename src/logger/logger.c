@@ -1,5 +1,6 @@
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "logger.h"
@@ -13,26 +14,26 @@ void set_log_fn(log_fn fn, void* arg) {
 }
 
 void basic_log_fn(
-    __attribute__((unused)) int lvl,
-    __attribute__((unused)) char* src,
-    __attribute__((unused)) char* file,
-    __attribute__((unused)) int line,
-    char* msg,
-    __attribute__((unused)) void* arg
+    void* arg,
+    int lvl,
+    const char* src,
+    const char* file,
+    int line,
+    const char* msg
 ) {
-    for (char* c = msg; *c != '\0'; c++) {
+    for (char* c = (char*)msg; *c != '\0'; c++) {
         if (*c == '\n') *c = ' ';
     }
     printf("%s\n", msg);
 }
 
 void new_log(
-    mc_LogLevel_t lvl,
-    char* src,
-    __attribute__((unused)) void* arg,
-    char* file,
+    void* arg,
+    mc_LogLevel lvl,
+    const char* src,
+    const char* file,
     int line,
-    char* fmt,
+    const char* fmt,
     ...
 ) {
     va_list args;
@@ -43,7 +44,7 @@ void new_log(
     vsnprintf(message, message_len + 1, fmt, args);
     va_end(args);
 
-    currLogFunction(lvl, src, file, line, message, currLogFunctionArg);
+    currLogFunction(currLogFunctionArg, lvl, src, file, line, message);
 
     free(message);
 }

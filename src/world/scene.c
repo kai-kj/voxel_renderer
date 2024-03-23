@@ -16,9 +16,9 @@ struct Scene {
     uint materialCount;
     Material* materials;
     uint* voxels;
-    mc_Buffer_t* dataBuff;
-    mc_Buffer_t* materialBuff;
-    mc_Buffer_t* voxelBuff;
+    mce_HBuffer* dataBuff;
+    mce_HBuffer* materialBuff;
+    mce_HBuffer* voxelBuff;
 };
 
 static uint voxels_count(Scene* scene) {
@@ -39,7 +39,7 @@ static uint coord_to_index(Scene* scene, uvec3 pos) {
          + pos.y * scene->data.size.x + pos.x;
 }
 
-Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo) {
+Scene* scene_create(mc_Device* device, SceneCreateInfo sceneCreateInfo) {
     CHECK_NULL(device, NULL)
     INFO("creating scene");
 
@@ -55,12 +55,20 @@ Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo) {
     scene->voxels = malloc(voxels_size(scene));
     for (uint i = 0; i < voxels_count(scene); i++) scene->voxels[i] = 0;
 
-    scene->dataBuff
-        = mc_buffer_create_from(device, sizeof(SceneData), &scene->data);
-    scene->materialBuff
-        = mc_buffer_create(device, sizeof(Material) * scene->materialCapacity);
-    scene->voxelBuff
-        = mc_buffer_create_from(device, voxels_size(scene), scene->voxels);
+    scene->dataBuff = mce_hybrid_buffer_create_from(
+        device,
+        sizeof(SceneData),
+        &scene->data
+    );
+    scene->materialBuff = mce_hybrid_buffer_create(
+        device,
+        sizeof(Material) * scene->materialCapacity
+    );
+    scene->voxelBuff = mce_hybrid_buffer_create_from(
+        device,
+        voxels_size(scene),
+        scene->voxels
+    );
 
     return scene;
 }
@@ -71,22 +79,27 @@ void scene_destroy(Scene* scene) {
 
     free(scene->materials);
     free(scene->voxels);
-    mc_buffer_destroy(scene->dataBuff);
-    mc_buffer_destroy(scene->materialBuff);
-    mc_buffer_destroy(scene->voxelBuff);
+    mce_hybrid_buffer_destroy(scene->dataBuff);
+    mce_hybrid_buffer_destroy(scene->materialBuff);
+    mce_hybrid_buffer_destroy(scene->voxelBuff);
     free(scene);
 }
 
 void scene_update_data(Scene* scene) {
     CHECK_NULL(scene)
     INFO("updating scene data");
-    mc_buffer_write(scene->dataBuff, 0, sizeof scene->data, &scene->data);
+    mce_hybrid_buffer_write(
+        scene->dataBuff,
+        0,
+        sizeof scene->data,
+        &scene->data
+    );
 }
 
 void scene_update_materials(Scene* scene) {
     CHECK_NULL(scene)
     INFO("updating scene materials");
-    mc_buffer_write(
+    mce_hybrid_buffer_write(
         scene->materialBuff,
         0,
         sizeof *scene->materials * scene->materialCount,
@@ -97,7 +110,12 @@ void scene_update_materials(Scene* scene) {
 void scene_update_voxels(Scene* scene) {
     CHECK_NULL(scene)
     INFO("updating scene voxels");
-    mc_buffer_write(scene->voxelBuff, 0, voxels_size(scene), scene->voxels);
+    mce_hybrid_buffer_write(
+        scene->voxelBuff,
+        0,
+        voxels_size(scene),
+        scene->voxels
+    );
 }
 
 uint scene_register_material(Scene* scene, Material material) {
@@ -108,7 +126,7 @@ uint scene_register_material(Scene* scene, Material material) {
             scene->materials,
             sizeof *scene->materials * scene->materialCapacity
         );
-        scene->materialBuff = mc_buffer_realloc(
+        scene->materialBuff = mce_hybrid_buffer_realloc(
             scene->materialBuff,
             sizeof *scene->materials * scene->materialCapacity
         );
@@ -126,17 +144,17 @@ void scene_set(Scene* scene, uvec3 pos, uint materialID) {
     scene->voxels[coord_to_index(scene, pos)] = materialID;
 }
 
-mc_Buffer_t* scene_get_data_buff(Scene* scene) {
+mce_HBuffer* scene_get_data_buff(Scene* scene) {
     CHECK_NULL(scene, NULL)
     return scene->dataBuff;
 }
 
-mc_Buffer_t* scene_get_material_buff(Scene* scene) {
+mce_HBuffer* scene_get_material_buff(Scene* scene) {
     CHECK_NULL(scene, NULL)
     return scene->materialBuff;
 }
 
-mc_Buffer_t* scene_get_voxel_buff(Scene* scene) {
+mce_HBuffer* scene_get_voxel_buff(Scene* scene) {
     CHECK_NULL(scene, NULL)
     return scene->voxelBuff;
 }

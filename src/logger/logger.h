@@ -2,10 +2,9 @@
 
 #include <stdio.h>
 
-#include "microcompute/mc.h"
+#include "microcompute.h"
 
-typedef void(*log_fn) //
-    (int lvl, char* src, char* file, int line, char* msg, void* arg);
+typedef void (*log_fn)(void*, int, const char*, const char*, int, const char*);
 
 /**
  * @brief Log a message
@@ -15,9 +14,9 @@ typedef void(*log_fn) //
  */
 #define LOG(lvl, fmt, ...)                                                     \
     new_log(                                                                   \
+        NULL,                                                                  \
         lvl,                                                                   \
         "app",                                                                 \
-        NULL,                                                                  \
         __FILE__,                                                              \
         __LINE__,                                                              \
         fmt __VA_OPT__(, ) __VA_ARGS__                                         \
@@ -73,30 +72,30 @@ void set_log_fn(log_fn fn, void* arg);
  * @brief A basic log function that logs to stdout
  */
 void basic_log_fn(
+    void* arg,
     int lvl,
-    char* src,
-    char* file,
+    const char* src,
+    const char* file,
     int line,
-    char* msg,
-    void* arg
+    const char* msg
 );
 
 /**
  * @brief Create a new log, meant to be used by the LOG macro
+ * @param arg The argument for the log function
  * @param lvl The level of the log
  * @param src The source of the log
- * @param arg The argument for the log
  * @param file The file of the log
  * @param line The line of the log
  * @param fmt The format of the log
  * @param ... The arguments for the log
  */
 void new_log(
-    mc_LogLevel_t lvl,
-    char* src,
     void* arg,
-    char* file,
+    mc_LogLevel lvl,
+    const char* src,
+    const char* file,
     int line,
-    char* fmt,
+    const char* fmt,
     ...
 );

@@ -14,7 +14,7 @@ typedef struct {
 
 struct Camera {
     CameraData data;
-    mc_Buffer_t* dataBuff;
+    mce_HBuffer* dataBuff;
 };
 
 float deg2rad(float deg) {
@@ -25,7 +25,7 @@ float rad2deg(float rad) {
     return rad * 180 / PI;
 }
 
-Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo) {
+Camera* camera_create(mc_Device* device, CameraCreateInfo cameraCreateInfo) {
     CHECK_NULL(device, NULL)
     INFO("creating camera");
 
@@ -39,8 +39,11 @@ Camera* camera_create(mc_Device_t* device, CameraCreateInfo cameraCreateInfo) {
         },
     };
 
-    camera->dataBuff
-        = mc_buffer_create_from(device, sizeof camera->data, &camera->data);
+    camera->dataBuff = mce_hybrid_buffer_create_from(
+        device,
+        sizeof camera->data,
+        &camera->data
+    );
 
     camera_set(camera, cameraCreateInfo.pos, cameraCreateInfo.rot);
 
@@ -51,14 +54,19 @@ void camera_destroy(Camera* camera) {
     CHECK_NULL(camera)
     DEBUG("destroying camera");
 
-    mc_buffer_destroy(camera->dataBuff);
+    mce_hybrid_buffer_destroy(camera->dataBuff);
     free(camera);
 }
 
 void camera_update(Camera* camera) {
     CHECK_NULL(camera)
     INFO("updating camera");
-    mc_buffer_write(camera->dataBuff, 0, sizeof camera->data, &camera->data);
+    mce_hybrid_buffer_write(
+        camera->dataBuff,
+        0,
+        sizeof camera->data,
+        &camera->data
+    );
 }
 
 void camera_set(Camera* camera, vec3 pos, vec3 dir) {
@@ -67,7 +75,7 @@ void camera_set(Camera* camera, vec3 pos, vec3 dir) {
     camera->data.dir = (vec3){deg2rad(dir.x), deg2rad(dir.y), deg2rad(dir.z)};
 }
 
-mc_Buffer_t* camera_get_data_buff(Camera* camera) {
+mce_HBuffer* camera_get_data_buff(Camera* camera) {
     CHECK_NULL(camera, NULL)
     return camera->dataBuff;
 }

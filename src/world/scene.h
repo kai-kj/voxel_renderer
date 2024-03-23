@@ -1,8 +1,8 @@
 #pragma once
 
-#define MC_VEC_SHORT_NAMES
-#include "microcompute/mc.h"
-#include "microcompute/mc_vec.h"
+#define vec_SHORT_NAMES
+#include "microcompute_extra.h"
+#include "vector.h"
 
 #include "material.h"
 
@@ -19,7 +19,7 @@ typedef struct SceneCreateInfo {
  * @param sceneCreateInfo The scene creation info
  * @return A new scene
  */
-Scene* scene_create(mc_Device_t* device, SceneCreateInfo sceneCreateInfo);
+Scene* scene_create(mc_Device* device, SceneCreateInfo sceneCreateInfo);
 
 /**
  * @brief Destroy a scene
@@ -66,18 +66,18 @@ void scene_set(Scene* scene, uvec3 pos, uint materialID);
  * @param scene The scene to get the data buffer of
  * @return The data buffer
  */
-mc_Buffer_t* scene_get_data_buff(Scene* scene);
+mce_HBuffer* scene_get_data_buff(Scene* scene);
 
 /**
  * @brief Get the material buffer of a scene
  * @param scene The scene to get the material buffer of
  * @return The material buffer
  */
-mc_Buffer_t* scene_get_material_buff(Scene* scene);
+mce_HBuffer* scene_get_material_buff(Scene* scene);
 
 /**
  * @brief Get the voxel buffer of a scene
  * @param scene The scene to get the voxel buffer of
  * @return The voxel buffer
  */
-mc_Buffer_t* scene_get_voxel_buff(Scene* scene);
+mce_HBuffer* scene_get_voxel_buff(Scene* scene);
