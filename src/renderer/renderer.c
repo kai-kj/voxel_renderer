@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 
 #include "logger/logger.h"
@@ -65,6 +66,25 @@ unsigned char* render(
     mc_Program* renderProgram
         = mc_program_create(dev, renderCode.size, renderCode.code, "main");
 
+    SPIRVCode iterCode = compile_glsl(
+        "iteration_shader",
+        settings.iterationCode,
+        "main",
+        (uvec2){1, 1}
+    );
+    if (iterCode.size == 0) {
+        ERROR("failed to compile iteration code");
+        return NULL;
+    }
+
+    mc_Program* iterProgram
+        = mc_program_create(dev, iterCode.size, iterCode.code, "main");
+
+    if (!iterProgram) {
+        ERROR("failed to create iteration program");
+        return NULL;
+    }
+
     SPIRVCode outputCode = compile_glsl(
         "output_shader",
         settings.outputCode,
@@ -94,23 +114,20 @@ unsigned char* render(
         settings.imageSize.x * settings.imageSize.y * sizeof(int)
     );
 
-    RenderInfo info = {settings.maxRayDepth, 0, 0};
     mce_HBuffer* infoBuff = mce_hybrid_buffer_create(dev, sizeof(RenderInfo));
 
     INFO("starting render (%d iterations):", settings.iterations);
-
     double start = mc_get_time();
-    srand((uint)start);
+
+    RenderInfo info = {settings.maxRayDepth, 0, (float)(start - floor(start))};
+    mce_hybrid_buffer_write(infoBuff, 0, sizeof info, &info);
 
     for (uint i = 0; i < settings.iterations; i++) {
-        info.iter = i + 1;
-        info.seed = (float)rand() / (float)RAND_MAX;
-
         float progress = (float)(i + 1) / (float)settings.iterations * 100.0f;
-        INFO("- %d/%d (%.2f%%)", info.iter, settings.iterations, progress);
+        INFO("- %d/%d (%.2f%%)", i + 1, settings.iterations, progress);
 
-        mce_hybrid_buffer_write(infoBuff, 0, sizeof info, &info);
-
+        mc_program_run(iterProgram, 1, 1, 1, infoBuff);
+        
         mc_program_run(
             renderProgram,
             settings.imageSize.x / settings.wgSize.x,
@@ -127,7 +144,11 @@ unsigned char* render(
 
     double elapsed = mc_get_time() - start;
     double rate = elapsed / settings.iterations;
-    INFO("finished render in %.02fs (%.02f ms/frame)", elapsed, rate * 1000.0);
+    INFO(
+        "finished render in %.02fs (%.02f ms/iteration)",
+        elapsed,
+        rate * 1000.0
+    );
 
     INFO("converting image into bytes");
 
@@ -152,6 +173,7 @@ unsigned char* render(
 
     DEBUG("cleaning up render");
     mc_program_destroy(renderProgram);
+    mc_program_destroy(iterProgram);
     mc_program_destroy(outputProgram);
     mce_hybrid_buffer_destroy(infoBuff);
     mce_hybrid_buffer_destroy(fImageBuff);

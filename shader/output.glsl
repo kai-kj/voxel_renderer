@@ -1,15 +1,15 @@
 #version 430
 
-layout(local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
+layout (local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
 
 ivec2 glPos = ivec2(gl_GlobalInvocationID.xy);
 ivec2 glSize = ivec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
 
-layout(std430, binding = 0) buffer buff0 {
+layout (std430, binding = 0) readonly buffer buff0 {
     vec3 floatImage[];
 };
 
-layout(std430, binding = 1) buffer buff1 {
+layout (std430, binding = 1) writeonly buffer buff1 {
     int byteImage[];
 };
 

@@ -4,12 +4,13 @@
 #include "world/scene.h"
 
 typedef struct {
-    char* rendererCode; ///< The renderer shader code
-    char* outputCode;   ///< The output shader code
-    uvec2 wgSize;       ///< The workgroup size
-    uvec2 imageSize;    ///< The size of the image
-    uint iterations;    ///< The number of iterations
-    uint maxRayDepth;   ///< The maximum ray depth
+    char* rendererCode;  ///< The renderer shader code
+    char* iterationCode; ///< The iteration shader code
+    char* outputCode;    ///< The output shader code
+    uvec2 wgSize;        ///< The workgroup size
+    uvec2 imageSize;     ///< The size of the image
+    uint iterations;     ///< The number of iterations
+    uint maxRayDepth;    ///< The maximum ray depth
 } RenderSettings;
 
 /**

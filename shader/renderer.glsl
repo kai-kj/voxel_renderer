@@ -1,6 +1,6 @@
 #version 430
 
-layout(local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
+layout (local_size_x = WORKGROUP_SIZE_X, local_size_y = WORKGROUP_SIZE_Y) in;
 
 ivec2 glPos = ivec2(gl_GlobalInvocationID.xy);
 ivec2 glSize = ivec2(gl_NumWorkGroups.xy * gl_WorkGroupSize.xy);
@@ -36,30 +36,30 @@ struct Hit {
 // buffers
 //============================================================================//
 
-layout(std430, binding = 0) readonly buffer buff0 {
+layout (std430, binding = 0) readonly buffer buff0 {
     uint maxRayDepth;
     uint iteration;
     float seed;
 };
 
-layout(std430, binding = 1) coherent buffer buff1 {
+layout (std430, binding = 1) coherent buffer buff1 {
     vec3 img[];
 };
 
-layout(std430, binding = 2) readonly buffer buff2 {
+layout (std430, binding = 2) readonly buffer buff2 {
     uvec3 sceneSize;
     Material bg;
 };
 
-layout(std430, binding = 3) readonly buffer buff3 {
+layout (std430, binding = 3) readonly buffer buff3 {
     Material materials[];
 };
 
-layout(std430, binding = 4) readonly buffer buff4 {
+layout (std430, binding = 4) readonly buffer buff4 {
     uint voxels[];
 };
 
-layout(std430, binding = 5) readonly buffer buff5 {
+layout (std430, binding = 5) readonly buffer buff5 {
     vec3 cameraPos;
     vec3 cameraDir;
     vec2 cameraSensorSize;
@@ -153,9 +153,7 @@ Hit traverse(Ray ray) {
     ivec3 step = ivec3(sign(ray.dir));
 
     vec3 tDelta = abs(length(ray.dir) / ray.dir);
-    vec3 tMax
-        = (sign(ray.dir) * (pos - ray.origin) + (sign(ray.dir) * 0.5) + 0.5)
-        * tDelta;
+    vec3 tMax = (sign(ray.dir) * (pos - ray.origin) + (sign(ray.dir) * 0.5) + 0.5) * tDelta;
 
     bvec3 mask = bvec3(false, false, false);
 
@@ -202,10 +200,10 @@ vec3 get_color(Ray ray) {
         Material material = materials[hit.material];
 
         if (hit.norm == ivec3(0))
-            return bg.color * bg.properties.x * throughput;
+        return bg.color * bg.properties.x * throughput;
 
         if (material.properties.x > 0)
-            return material.color * material.properties.x * throughput;
+        return material.color * material.properties.x * throughput;
 
         throughput *= material.color;
 

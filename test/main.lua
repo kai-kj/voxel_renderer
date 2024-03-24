@@ -46,9 +46,8 @@ return {
         local best = { index = 1, score = 0 }
         for i, device in ipairs(devices) do
             local score = 0
-            if device.type == "gpu" then
-                score = score + 1
-            end
+            score = score + (device.type == "DGPU" and 2 or 0)
+            score = score + (device.type == "IGPU" and 1 or 0)
             if score > best.score then
                 best = { index = i, score = score }
             end
@@ -58,6 +57,7 @@ return {
 
     renderer = {
         renderer_code = read_file("../shader/renderer.glsl"),
+        iteration_code = read_file("../shader/iteration.glsl"),
         output_code = read_file("../shader/output.glsl"),
         workgroup_size = { 16, 16 },
         image_size = { 1920, 1080 },

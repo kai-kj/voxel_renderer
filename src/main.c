@@ -104,6 +104,7 @@ int main(int argc, char** argv) {
                    "    device_selector: l,"
                    "    renderer: {"
                    "        renderer_code: s,"
+                   "        iteration_code: s,"
                    "        output_code: s,"
                    "        workgroup_size: {1: i, 2: i},"
                    "        image_size: {1: i, 2: i},"
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
         &logFunction,
         &deviceFunction,
         &rendererSettings.rendererCode,
+        &rendererSettings.iterationCode,
         &rendererSettings.outputCode,
         &rendererSettings.wgSize.x,
         &rendererSettings.wgSize.y,
